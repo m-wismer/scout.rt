@@ -33,11 +33,9 @@
 
 .dialog {
   position: absolute;
-  background-color: @background-color;
-  border: solid 1px @border-color;
-  border-top: @dialog-border-top-size solid @active-color;
-  border-top-left-radius: @border-radius;
-  border-top-right-radius: @border-radius;
+  background-color: @popup-background-color;
+  border-radius: @popup-border-radius;
+  overflow: hidden;
   #scout.drop-shadow-large();
   margin: 10px; /* minimum padding to desktop */
   margin-bottom: 15px;
@@ -86,11 +84,9 @@
 }
 
 .form > .header {
-  overflow: auto; /* clearfix */
-  zoom: 1; /* clearfix */
   margin-top: @form-title-margin-top;
   margin-left: 20px;
-  margin-right: 14px;
+  margin-right: 10px;
 
   &.no-title {
     position: absolute;
@@ -119,16 +115,17 @@
   & > .title {
     #scout.overflow-ellipsis-nowrap();
     font-size: @font-size-large;
-    color: @active-color;
+    color: @title-color;
   }
 
   & > .sub-title {
     #scout.overflow-ellipsis-nowrap();
-    color: @active-color;
+    color: @sub-title-color;
   }
 
   & > .status-container {
     float: right;
+    margin-top: -4px;
 
     & > .status {
       /* make sure close icon overlaps drag-handle */
@@ -140,6 +137,7 @@
 
       &.closer {
         margin-left: 7px;
+        padding: 6px;
       }
     }
   }
