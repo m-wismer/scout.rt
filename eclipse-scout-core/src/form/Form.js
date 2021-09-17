@@ -9,7 +9,7 @@
  *     BSI Business Systems Integration AG - initial API and implementation
  */
 import {
-  Button,
+  Button, AbortKeyStroke,
   DialogLayout,
   Event,
   FileChooserController,
@@ -17,7 +17,7 @@ import {
   FormLayout,
   GlassPaneRenderer,
   GroupBox,
-  HtmlComponent,
+  HtmlComponent, KeyStrokeContext,
   MessageBoxController,
   Rectangle,
   scout,
@@ -62,6 +62,7 @@ export default class Form extends Widget {
     this.formController = null;
     this.messageBoxController = null;
     this.fileChooserController = null;
+    this.closeKeyStroke = null;
     this._glassPaneRenderer = null;
     this._preMaximizedBounds = null;
     this._resizeHandler = this._onResize.bind(this);
@@ -107,6 +108,11 @@ export default class Form extends Widget {
     this._setStatus(this.status);
     this.cacheBoundsKey = scout.nvl(model.cacheBoundsKey, this.objectType);
     this._installLifecycle();
+    this._setClosable(this.closable);
+  }
+
+  _createKeyStrokeContext() {
+    return new KeyStrokeContext();
   }
 
   _render() {
@@ -539,6 +545,27 @@ export default class Form extends Widget {
    */
   _createRevealInvalidFieldEvent(validationResult) {
     return new Event({validationResult: validationResult});
+  }
+
+  /**
+   * Override this method to provide a key stroke which closes the form.
+   * The default implementation returns an AbortKeyStroke which handles the ESC key and calls {@link abort}.
+   * <p>
+   * The key stroke is only active if {@link this.closable} is set to true.
+   * @return KeyStroke
+   */
+  _createCloseKeyStroke() {
+    return new AbortKeyStroke(this, () => this.$close);
+  }
+
+  _setClosable(closable) {
+    this._setProperty('closable', closable);
+    if (this.closable) {
+      this.closeKeyStroke = this._createCloseKeyStroke();
+      this.keyStrokeContext.registerKeyStroke(this.closeKeyStroke);
+    } else {
+      this.keyStrokeContext.unregisterKeyStroke(this.closeKeyStroke);
+    }
   }
 
   setClosable(closable) {
