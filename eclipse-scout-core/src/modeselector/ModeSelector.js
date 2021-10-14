@@ -8,7 +8,7 @@
  * Contributors:
  *     BSI Business Systems Integration AG - initial API and implementation
  */
-import {arrays, events, HtmlComponent, ModeSelectorLayout, Widget} from '../index';
+import {arrays, events, graphics, HtmlComponent, ModeSelectorLayout, scout, Widget} from '../index';
 
 export default class ModeSelector extends Widget {
 
@@ -38,8 +38,8 @@ export default class ModeSelector extends Widget {
 
   _renderProperties() {
     super._renderProperties();
-    this._renderSlider();
     this._renderModes();
+    this._renderSlider();
   }
 
   setModes(modes) {
@@ -60,8 +60,7 @@ export default class ModeSelector extends Widget {
   }
 
   _renderSlider() {
-    this.$slider = this.$container.appendDiv('mode-slider');
-    this._updateSlider();
+    this.$slider = this.$container.prependDiv('mode-slider');
   }
 
   _renderModes() {
@@ -92,8 +91,6 @@ export default class ModeSelector extends Widget {
       this.setSelectedMode(event.source);
     } else if (event.propertyName === 'visible') {
       this._updateMarkers();
-    } else if (event.propertyName === 'enabled') {
-      this._updateSlider();
     }
   }
 
@@ -138,32 +135,36 @@ export default class ModeSelector extends Widget {
       return;
     }
 
-    let cssSliderWidth = '100% / ' + visibleNodes.length;
-    let sliderPosX = cssSliderWidth + ' * ' + index;
-    this.$slider.cssLeft('calc(' + sliderPosX + ')');
-    this.$slider.cssWidth('calc(' + cssSliderWidth + ')');
+    let modeBounds = graphics.bounds(this.selectedMode.$container);
+    this.$slider.cssLeft(modeBounds.x);
+    this.$slider.cssWidth(modeBounds.width);
   }
 
   _registerDragHandlers($mode) {
     let className = 'mode-selector-dragging';
+    let $newMode;
     let onDown = /** @type {SwipeCallbackEvent} */e => this.selectedMode && this.selectedMode.$container === $mode;
     let onMove = /** @type {SwipeCallbackEvent} */e => {
       let maxX = this.$container.width() - $mode.outerWidth() + 1;
       let minX = 0;
-      let newModeLeft = Math.max(Math.min(e.newLeft, maxX), minX); // limit to the size of the ModeSelector
-      this.$container.children().addClass(className);
-      if (newModeLeft !== e.originalLeft) {
-        this.$slider.cssLeft(newModeLeft);
+      let newSliderLeft = Math.max(Math.min(e.newLeft, maxX), minX); // limit to the size of the ModeSelector
+      if (newSliderLeft === e.originalLeft) {
+        return newSliderLeft;
       }
-      return newModeLeft;
+      // TODO elementFromPoint is bad because it does not work outside of the slider -> use mode bounds instead
+      $newMode = this.$container.elementFromPoint(e.originalEvent.pageX, e.originalEvent.pageY, '.mode');
+      this.$container.children().addClass(className);
+      if ($newMode.length > 0) {
+        let newModeWidth = $newMode.outerWidth();
+        this.$slider.cssLeft(newSliderLeft);
+        this.$slider.cssWidth(newModeWidth);
+      }
+      return newSliderLeft;
     };
     let onUp = /** @type {SwipeCallbackEvent} */e => {
       this.$container.children().removeClass(className);
-      let visibleModes = this.modes.filter(m => m.isVisible());
-      let modeWidth = this.$container.width() / visibleModes.length;
-      let modeCenter = e.newLeft + (modeWidth / 2.0);
-      let index = Math.floor(modeCenter / modeWidth);
-      let newSelectedMode = visibleModes[index];
+
+      let newSelectedMode = scout.widget($newMode);
       if (newSelectedMode === this.selectedMode) {
         this._updateSlider(); // move back to original position
       } else {

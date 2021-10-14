@@ -17,26 +17,8 @@ export default class ModeSelectorLayout extends AbstractLayout {
     this.modeSelector = modeSelector;
   }
 
-  preferredLayoutSize($container, options) {
-    let prefSize = super.preferredLayoutSize($container, options);
-
-    let oldStyle = this.modeSelector.$container.attr('style');
-    this.modeSelector.$container.css({
-      'width': 'auto',
-      'height': 'auto'
-    });
-
-    let maxWidth = 0;
-    this.modeSelector.modes.forEach(mode => {
-      let modeWidth = mode.htmlComp.prefSize().width;
-      if (modeWidth > maxWidth) {
-        maxWidth = modeWidth;
-      }
-    });
-
-    this.modeSelector.$container.attrOrRemove('style', oldStyle);
-
-    prefSize.width = maxWidth * this.modeSelector.modes.length + this.modeSelector.htmlComp.insets().horizontal();
-    return prefSize;
+  layout($container) {
+    super.layout($container);
+    this.modeSelector._updateSlider();
   }
 }
