@@ -132,47 +132,25 @@
   height: @tree-node-checkbox-size;
 
   & .check-box {
-    cursor: pointer;
-    display: inline-block;
-    position: relative;
-    font-size: @font-size-normal;
-    #scout.checkbox();
+    &:not(.checked).children-checked {
+      #scout.checkbox-undefined();
 
-    &.disabled,
-    .tree.disabled > .tree-data > .tree-node > &,
-    .tree.disabled > .tree-data > .animation-wrapper > .tree-node > & {
-
-      cursor: default;
+      &.disabled {
+        #scout.checkbox-undefined-disabled();
+      }
     }
 
-    &::before {
-      #scout.checkbox-before();
-    }
-
-    &.checked::before {
-      #scout.checkbox-before-checked();
-    }
-
-    &.disabled,
     .tree.disabled > .tree-data > .tree-node > &,
     .tree.disabled > .tree-data > .animation-wrapper > .tree-node > & {
       #scout.checkbox-disabled();
 
-      &::before {
-        #scout.checkbox-before-disabled();
+      &.checked {
+        #scout.checkbox-checked-disabled();
       }
 
-      :hover::before {
-        #scout.checkbox-before-disabled();
+      &:not(.checked).children-checked {
+        #scout.checkbox-undefined-disabled();
       }
-    }
-
-    &:not(.checked).children-checked::after {
-      #scout.checkbox-after-children-checked();
-    }
-
-    &.disabled:not(.checked).children-checked::after {
-      #scout.checkbox-after-children-checked-disabled();
     }
   }
 }

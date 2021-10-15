@@ -204,9 +204,6 @@ export default class TabBox extends CompositeField {
     } else {
       widgets.resetProperty(preservedValue => this.setStatusPosition(preservedValue), this, '_statusPositionOrig');
     }
-
-    // Prevent flickering of status icon
-    this.validateLayout();
   }
 
   setTabAreaStyle(tabAreaStyle) {

@@ -13,11 +13,13 @@
   outline: none;
   display: flex;
 
-  & > .check-box,
   & > .label {
     color: @control-color;
+  }
+
+  & > .check-box,
+  & > .label {
     cursor: pointer;
-    vertical-align: middle;
   }
 
   /* only the label should be clickable, not the whole field */
@@ -52,38 +54,6 @@
 
   & > .check-box {
     flex: none; /* never shrink check-box */
-    #scout.checkbox();
-
-    &:focus {
-      outline: none;
-      border-color: @focus-border-color;
-    }
-
-    &::before {
-      #scout.checkbox-before();
-    }
-
-    &.checked::before {
-      #scout.checkbox-before-checked();
-    }
-
-    &.undefined::before {
-      /* tri-state */
-      #scout.checkbox-before-undefined();
-    }
-
-    &.disabled {
-      #scout.checkbox-disabled();
-
-      &::before {
-        #scout.checkbox-before-disabled();
-      }
-
-      &.undefined::before {
-        /* tri-state */
-        #scout.checkbox-before-undefined-disabled();
-      }
-    }
   }
 
   /* Same spacings as defined in CellEditorPopup.less, but as margin, not as padding */
@@ -95,6 +65,11 @@
 
     &.last {
       margin-right: @table-cell-padding-right-last !important;
+    }
+
+    &:focus {
+      border-width: 1px;
+      #scout.focus-border();
     }
   }
 
