@@ -63,9 +63,9 @@ public abstract class AbstractIconProviderService implements IIconProviderServic
     m_cacheLock.readLock().lock();
     try {
       IconSpec spec = m_cache.get(iconName);
-      if (spec != null || m_cache.containsKey(iconName)) {
-        return spec;
-      }
+//      if (spec != null || m_cache.containsKey(iconName)) {
+//        return spec;
+//      }
     }
     finally {
       m_cacheLock.readLock().unlock();

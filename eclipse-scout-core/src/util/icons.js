@@ -121,6 +121,9 @@ export function parseIconId(iconId) {
       icon.font = tmp[0];
       icon.iconCharacter = tmp[1];
     }
+  } else if (strings.startsWith(iconId, 'inline-svg:')) {
+    icon.iconType = IconDesc.IconType.INLINE_SVG;
+    icon.iconUrl = iconId.replace('inline-svg:', '');
   } else {
     icon.iconType = IconDesc.IconType.BITMAP;
     icon.iconUrl = iconId;

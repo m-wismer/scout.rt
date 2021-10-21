@@ -84,12 +84,21 @@ public final class BinaryResourceUrlUtility {
     if (iconId.startsWith("font:")) {
       return iconId;
     }
-    IconSpec iconSpec = IconLocator.instance().getIconSpec(iconId);
-    if (iconSpec != null) {
-      return "icon/" + iconSpec.getName(); // includes file extension
+    boolean inline = false;
+    if (iconId.startsWith("inline-svg:")) {
+      iconId = iconId.replaceFirst("inline-svg:", "");
+      inline = true;
     }
-    LOG.warn("iconId '{}' could not be resolved", iconId);
-    return null; // may happen, when no icon is available for the requested iconName
+    IconSpec iconSpec = IconLocator.instance().getIconSpec(iconId);
+    if (iconSpec == null) {
+      LOG.warn("iconId '{}' could not be resolved", iconId);
+      return null; // may happen, when no icon is available for the requested iconName
+    }
+    String url = "icon/" + iconSpec.getName();
+    if (inline) {
+      url = "inline-svg:" + url;
+    }
+    return url;
   }
 
   /**

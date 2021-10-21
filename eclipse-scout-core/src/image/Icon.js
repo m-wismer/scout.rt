@@ -9,6 +9,7 @@
  *     BSI Business Systems Integration AG - initial API and implementation
  */
 import {HtmlComponent, IconDesc, Image, scout, Widget} from '../index';
+import $ from 'jquery';
 
 /**
  * Widget representing an icon. It may be a font icon or an image icon. Depending on the type, either a span or an img tag will be rendered.
@@ -30,6 +31,8 @@ export default class Icon extends Widget {
      */
     this.image = null;
     this.prepend = false;
+    this._svg = null;
+    this.inlineSvgLoading = false;
   }
 
   _init(model) {
@@ -39,6 +42,7 @@ export default class Icon extends Widget {
 
   _render() {
     this._renderIconDesc(); // Must not be in _renderProperties because it creates $container -> properties like visible etc. need to be rendered afterwards
+    this._renderInlineSvgLoading();
   }
 
   /**
@@ -52,14 +56,19 @@ export default class Icon extends Widget {
   _setIconDesc(iconDesc) {
     iconDesc = IconDesc.ensure(iconDesc);
     this._setProperty('iconDesc', iconDesc);
+
+    // Clear cache
+    this._svg = null;
   }
 
   _renderIconDesc() {
-    this._removeFontIcon();
+    this._removeContainer(); // Also removes inline svg
     this._removeImageIcon();
 
     if (!this.iconDesc || this.iconDesc.isFontIcon()) {
       this._renderFontIcon();
+    } else if (this.iconDesc.isInlineSvg()) {
+      this._renderInlineSvgIcon();
     } else {
       this._renderImageIcon();
     }
@@ -67,6 +76,67 @@ export default class Icon extends Widget {
       this._renderProperties();
     }
     this.invalidateLayoutTree();
+  }
+
+  _renderInlineSvgIcon() {
+    if (!this._svg) {
+      this._loadSvg().then(data => this._onInlineSvgLoad(data));
+      this.setInlineSvgLoading(true);
+      return;
+    }
+    // TODO CGU add to jquery-scout? maybe it should support inline-svg:<svg> and do the prepare and append while icon.js does caching
+    this.$container = this._prepareSvg(this._svg);
+    this.$container.appendTo(this.$parent);
+    if (this.prepend) {
+      this.$container.prependTo(this.$parent);
+    }
+    this.htmlComp = HtmlComponent.install(this.$container, this.session);
+  }
+
+  _onInlineSvgLoad(data) {
+    this._svg = data;
+    this.setInlineSvgLoading(false);
+    if (this.rendered) {
+      this._renderInlineSvgIcon();
+      this._renderProperties();
+      this.invalidateLayoutTree();
+    }
+  }
+
+  setInlineSvgLoading(loading) {
+    this.setProperty('inlineSvgLoading', loading);
+  }
+
+  _renderInlineSvgLoading() {
+    if (!this.iconDesc || !this.iconDesc.isInlineSvg()) {
+      return;
+    }
+    if (this.inlineSvgLoading) {
+      if (!this.$container) {
+        this.$container = this.$parent.appendDiv('loading icon svg-icon');
+        if (this.prepend) {
+          this.$container.prependTo(this.$parent);
+        }
+        this.htmlComp = HtmlComponent.install(this.$container, this.session);
+      }
+    } else {
+      if (this.$container && this.$container.hasClass('loading')) {
+        this._removeContainer();
+      }
+    }
+  }
+
+  _prepareSvg(svg) {
+    return $(svg)
+      .filter('svg') // ignore XML declaration and comments
+      .addClass('svg-icon icon');
+  }
+
+  _loadSvg() {
+    return $.ajax({
+      dataType: 'text',
+      url: this.iconDesc.iconUrl
+    });
   }
 
   _renderFontIcon() {
@@ -78,7 +148,7 @@ export default class Icon extends Widget {
     this.htmlComp = HtmlComponent.install(this.$container, this.session);
   }
 
-  _removeFontIcon() {
+  _removeContainer() {
     if (this.$container) {
       this.$container.remove();
       this.$container = null;

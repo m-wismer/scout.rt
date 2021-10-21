@@ -17,11 +17,13 @@ export default class IconDesc {
     this.font = null;
     this.iconCharacter = null;
     this.iconUrl = null;
+    this.iconName = null;
   }
 
   static IconType = {
     FONT_ICON: 0,
-    BITMAP: 1
+    BITMAP: 1,
+    INLINE_SVG: 2
   };
 
   static DEFAULT_FONT = 'scoutIcons';
@@ -53,6 +55,10 @@ export default class IconDesc {
 
   isBitmap() {
     return this.iconType === IconDesc.IconType.BITMAP;
+  }
+
+  isInlineSvg() {
+    return this.iconType === IconDesc.IconType.INLINE_SVG;
   }
 
   /**
