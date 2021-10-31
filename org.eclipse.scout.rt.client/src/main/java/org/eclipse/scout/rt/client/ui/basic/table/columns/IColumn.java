@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2018 BSI Business Systems Integration AG.
+ * Copyright (c) 2010-2021 BSI Business Systems Integration AG.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -18,6 +18,7 @@ import org.eclipse.scout.rt.client.ui.IHtmlCapable;
 import org.eclipse.scout.rt.client.ui.IStyleable;
 import org.eclipse.scout.rt.client.ui.basic.cell.Cell;
 import org.eclipse.scout.rt.client.ui.basic.table.ColumnSet;
+import org.eclipse.scout.rt.client.ui.basic.table.GroupingStyle;
 import org.eclipse.scout.rt.client.ui.basic.table.IHeaderCell;
 import org.eclipse.scout.rt.client.ui.basic.table.ITable;
 import org.eclipse.scout.rt.client.ui.basic.table.ITableRow;
@@ -36,8 +37,7 @@ public interface IColumn<VALUE> extends IPropertyObserver, ITypeWithClassId, IOr
   /**
    * type boolean
    */
-  String PROP_VISIBLE = "visible";// defined as: visibleGranted &&
-  // displayable && visibleProperty
+  String PROP_VISIBLE = "visible";
   /**
    * type boolean
    */
@@ -102,6 +102,11 @@ public interface IColumn<VALUE> extends IPropertyObserver, ITypeWithClassId, IOr
    */
   String PROP_UI_SORT_POSSIBLE = "uiSortPossible";
 
+  /**
+   * type boolean
+   */
+  String PROP_TITLE_GROUPING_SUPPORTED = "titleGroupingSupported";
+
   int MIN_WIDTH = 60;
   int NARROW_MIN_WIDTH = 32;
 
@@ -143,7 +148,6 @@ public interface IColumn<VALUE> extends IPropertyObserver, ITypeWithClassId, IOr
    * <p>
    * If any cell editor is active, editing is canceled and it's value rejected.
    * </p>
-   *
    */
   void setValue(ITableRow r, VALUE value);
 
@@ -154,7 +158,6 @@ public interface IColumn<VALUE> extends IPropertyObserver, ITypeWithClassId, IOr
    * <p>
    * If any cell editor is active, editing is canceled and it's value rejected.
    * </p>
-   *
    */
   void setValue(int rowIndex, VALUE value);
 
@@ -255,6 +258,24 @@ public interface IColumn<VALUE> extends IPropertyObserver, ITypeWithClassId, IOr
 
   void setInitialAlwaysIncludeSortAtEnd(boolean b);
 
+  /**
+   * @return {@code true} if texts of this column should be displayed in the first cell of a grouping row (title). If
+   *         {@code false}, the grouping text is shown in the column directly. This property is only relevant if
+   *         {@link ITable#getGroupingStyle()} is {@link GroupingStyle#TITLE}.
+   */
+  boolean isTitleGroupingSupported();
+
+  /**
+   * Sets if values of this column should be shown in the first cell of a grouping row (title) or inside the column
+   * directly. This property is only relevant if {@link ITable#getGroupingStyle()} is {@link GroupingStyle#TITLE}.
+   *
+   * @param titleGroupingSupported
+   *          {@code true} if values of this column should be shown in the first cell (title) or {@code false} if the
+   *          values should be shown inside the column directly.
+   * @return {@code true} if the property was changed with this call.
+   */
+  boolean setTitleGroupingSupported(boolean titleGroupingSupported);
+
   int getWidth();
 
   void setWidth(int w);
@@ -320,7 +341,7 @@ public interface IColumn<VALUE> extends IPropertyObserver, ITypeWithClassId, IOr
   boolean isParentKey();
 
   /**
-   * the value in this column is part of the row summary text (for example in a explorer tree node)
+   * the value in this column is part of the row summary text (for example in an explorer tree node)
    */
   boolean isSummary();
 
@@ -349,7 +370,7 @@ public interface IColumn<VALUE> extends IPropertyObserver, ITypeWithClassId, IOr
 
   void setFont(FontSpec f);
 
-  void setHorizontalAlignment(int hAglin);
+  void setHorizontalAlignment(int hAlign);
 
   /**
    * <0 for left alignment 0 for center alignment and > 0 for right alignment. This alignment is used for header cell

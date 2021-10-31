@@ -59,6 +59,7 @@ export default class Column {
     this.tableNodeLevel0CellPadding = 28;
     this.expandableIconLevel0CellPadding = 13;
     this.nodeColumnCandidate = true;
+    this.titleGroupingSupported = false;
 
     this.events = this._createEventSupport();
 
@@ -183,7 +184,7 @@ export default class Column {
     }
 
     let returned = this._formatValue(value, row);
-    if (returned && $.isFunction(returned.promise)) {
+    if (returned && typeof returned.promise === 'function') {
       // Promise is returned -> set display text later
       this.setCellTextDeferred(returned, row, cell);
     } else {
@@ -217,12 +218,34 @@ export default class Column {
 
   buildCellForAggregateRow(aggregateRow) {
     let cell;
-    if (this.grouped) {
-      let refRow = (this.table.groupingStyle === Table.GroupingStyle.TOP ? aggregateRow.nextRow : aggregateRow.prevRow);
-      cell = this.createAggrGroupCell(refRow);
-    } else {
-      let aggregateValue = aggregateRow.contents[this.table.columns.indexOf(this)];
-      cell = this.createAggrValueCell(aggregateValue);
+    let isTitleGrouping = this.table.groupingStyle === Table.GroupingStyle.TITLE;
+    if (isTitleGrouping) {
+      // grouping as title (first cell of row)
+      let visibleColumns = this.table.visibleColumns();
+      if (visibleColumns.length > 0 && visibleColumns[0] === this) {
+        let titleAggregationColumns = visibleColumns
+          .filter(c => c.grouped)
+          .filter(c => c.titleGroupingSupported);
+        if (titleAggregationColumns.length) {
+          cell = this.createAggrGroupCellTitle(titleAggregationColumns, aggregateRow.nextRow);
+        }
+      }
+    }
+
+    if (!cell) {
+      if (this.grouped && (!isTitleGrouping || !this.titleGroupingSupported)) {
+        // grouping in cell
+        cell = this.createAggrGroupCell(this.table._isGroupingOnTop() ? aggregateRow.nextRow : aggregateRow.prevRow);
+      } else {
+        // value cell (empty or grouping value)
+        let aggregateValue = aggregateRow.contents[this.table.columns.indexOf(this)];
+        cell = this.createAggrValueCell(aggregateValue);
+      }
+    }
+
+    if (isTitleGrouping) {
+      cell.flowsLeft = this.horizontalAlignment > 0;
+      cell.cssClass += ' table-aggregate-cell-title';
     }
     return this.buildCell(cell, {});
   }
@@ -238,8 +261,7 @@ export default class Column {
     }
 
     let text = this._text(cell);
-    let iconId = cell.iconId;
-    let icon = this._icon(iconId, !!text) || '';
+    let icon = this._icon(cell.iconId, !!text) || '';
     let cssClass = this._cellCssClass(cell, tableNodeColumn);
     let style = this._cellStyle(cell, tableNodeColumn, rowPadding);
 
@@ -253,7 +275,11 @@ export default class Column {
       content = '&nbsp;';
       cssClass = strings.join(' ', cssClass, 'empty');
     } else {
-      content = icon + text;
+      if (cell.flowsLeft) {
+        content = text + icon;
+      } else {
+        content = icon + text;
+      }
     }
 
     if (tableNodeColumn && row._expandable) {
@@ -668,6 +694,21 @@ export default class Column {
       return;
     }
     this.table.resizeColumn(this, width);
+  }
+
+  createAggrGroupCellTitle(aggregationColumns, refRow) {
+    // TODO: copy tags (icons, formatting, multiline), vertical-align: middle?
+    let groupingTexts = aggregationColumns
+      .map(c => c.cellTextForGrouping(refRow));
+    let title = strings.join(' / ', groupingTexts);
+    let cell = this.initCell(scout.create('Cell', {
+      value: null, // do not pass a value because it would be parsed and must therefore be valid
+      text: null, // do not set text here because some columns (e.g. IconColumn) modify the text during initCell. Instead apply the text afterwards
+      horizontalAlignment: -1,
+      cssClass: 'table-aggregate-cell table-aggregate-cell-title'
+    }));
+    cell.setText(title);
+    return cell;
   }
 
   createAggrGroupCell(row) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 BSI Business Systems Integration AG.
+ * Copyright (c) 2010-2021 BSI Business Systems Integration AG.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -20,5 +20,10 @@ public abstract class AbstractIEnumColumn<VALUE extends IEnum> extends AbstractC
   @Override
   protected String formatValueInternal(ITableRow row, IEnum value) {
     return value != null ? value.text() : "";
+  }
+
+  @Override
+  protected boolean getConfiguredTitleGroupingSupported() {
+    return true;
   }
 }

@@ -106,6 +106,7 @@ public class JsonColumn<T extends IColumn<?>> implements IJsonObject {
     json.put("headerIconId", BinaryResourceUrlUtility.createIconUrl(getColumn().getHeaderCell().getIconId()));
     BEANS.get(InspectorInfo.class).put(getUiSession(), json, getColumn());
     json.put(IColumn.PROP_UI_SORT_POSSIBLE, getColumn().isUiSortPossible());
+    json.put(IColumn.PROP_TITLE_GROUPING_SUPPORTED, getColumn().isTitleGroupingSupported());
     json.put(PROP_INITIAL_ALWAYS_INCLUDE_SORT_AT_BEGIN, getColumn().isInitialAlwaysIncludeSortAtBegin());
     json.put(PROP_INITIAL_ALWAYS_INCLUDE_SORT_AT_END, getColumn().isInitialAlwaysIncludeSortAtEnd());
     json.put(PROP_REMOVABLE, getColumn().isRemovable());
