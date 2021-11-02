@@ -860,6 +860,9 @@ export default class Table extends Widget {
     }
     if ($row.data('aggregateRow') && $cell.text().trim()) {
       let $overflowElement = this.groupingStyle === Table.GroupingStyle.TITLE ? $cell.children('.text') : $cell;
+      if (!$overflowElement || !$overflowElement.length) {
+        return null;
+      }
       let iconAvailableButHidden = $cell.children('.table-cell-icon').length && !$cell.children('.table-cell-icon').isVisible();
       if ($overflowElement.isContentTruncated() || iconAvailableButHidden) {
         let $clone = $cell.clone();

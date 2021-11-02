@@ -697,18 +697,31 @@ export default class Column {
   }
 
   createAggrGroupCellTitle(aggregationColumns, refRow) {
-    // TODO: copy tags (icons, formatting, multiline), vertical-align: middle?
-    let groupingTexts = aggregationColumns
-      .map(c => c.cellTextForGrouping(refRow));
-    let title = strings.join(' / ', groupingTexts);
+    let groupingContents = aggregationColumns
+      .map(c => c.createAggrGroupCell(refRow))
+      .map(c => this.buildCell(c, {}))
+      .map(h => $(h))
+      .map($e => this._blub($e))
+      .map($e => $e[0].outerHTML);
+    let title = strings.join('<div style="display: inline-block">&nbsp;/&nbsp;</div> ', groupingContents);
+
     let cell = this.initCell(scout.create('Cell', {
       value: null, // do not pass a value because it would be parsed and must therefore be valid
       text: null, // do not set text here because some columns (e.g. IconColumn) modify the text during initCell. Instead apply the text afterwards
+      htmlEnabled: true,
       horizontalAlignment: -1,
       cssClass: 'table-aggregate-cell table-aggregate-cell-title'
     }));
     cell.setText(title);
     return cell;
+  }
+
+  _blub($a) {
+    return $a
+      // .cssPaddingX('0').cssPaddingY('0')
+      .cssBorderWidthX('0').cssBorderWidthY('0')
+      .cssMinWidth('').cssMaxWidth('')
+      .css('display', 'inline-block');
   }
 
   createAggrGroupCell(row) {
