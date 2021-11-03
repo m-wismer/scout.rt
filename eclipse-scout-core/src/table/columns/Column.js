@@ -183,7 +183,7 @@ export default class Column {
     }
 
     let returned = this._formatValue(value, row);
-    if (returned && $.isFunction(returned.promise)) {
+    if (returned && typeof returned.promise === 'function') {
       // Promise is returned -> set display text later
       this.setCellTextDeferred(returned, row, cell);
     } else {
@@ -224,6 +224,7 @@ export default class Column {
       let aggregateValue = aggregateRow.contents[this.table.columns.indexOf(this)];
       cell = this.createAggrValueCell(aggregateValue);
     }
+    cell.flowsLeft = this.horizontalAlignment > 0;
     return this.buildCell(cell, {});
   }
 
@@ -238,8 +239,7 @@ export default class Column {
     }
 
     let text = this._text(cell);
-    let iconId = cell.iconId;
-    let icon = this._icon(iconId, !!text) || '';
+    let icon = this._icon(cell.iconId, !!text) || '';
     let cssClass = this._cellCssClass(cell, tableNodeColumn);
     let style = this._cellStyle(cell, tableNodeColumn, rowPadding);
 
@@ -253,7 +253,11 @@ export default class Column {
       content = '&nbsp;';
       cssClass = strings.join(' ', cssClass, 'empty');
     } else {
-      content = icon + text;
+      if (cell.flowsLeft) {
+        content = text + icon;
+      } else {
+        content = icon + text;
+      }
     }
 
     if (tableNodeColumn && row._expandable) {
@@ -678,7 +682,8 @@ export default class Column {
       text: this.cellTextForGrouping(row),
       iconId: cell.iconId,
       horizontalAlignment: this.horizontalAlignment,
-      cssClass: 'table-aggregate-cell' + (cell.cssClass ? ' ' + cell.cssClass : '')
+      cssClass: 'table-aggregate-cell' + (cell.cssClass ? ' ' + cell.cssClass : ''),
+      backgroundColor: 'inherit'
     }));
   }
 

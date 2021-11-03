@@ -1358,7 +1358,7 @@ $.fn.cssBorderWidthY = function(value) {
     return this.cssBorderTopWidth() + this.cssBorderBottomWidth();
   }
   this.cssBorderTopWidth(value);
-  this.cssBorderBottomWidth(value);
+  return this.cssBorderBottomWidth(value);
 };
 
 $.fn.cssBorderWidthX = function(value) {
@@ -1366,7 +1366,7 @@ $.fn.cssBorderWidthX = function(value) {
     return this.cssBorderLeftWidth() + this.cssBorderRightWidth();
   }
   this.cssBorderLeftWidth(value);
-  this.cssBorderRightWidth(value);
+  return this.cssBorderRightWidth(value);
 };
 
 /**

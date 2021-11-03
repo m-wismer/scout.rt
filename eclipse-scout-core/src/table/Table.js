@@ -79,7 +79,7 @@ export default class Table extends Widget {
     this.compactColumn = null;
     this.dropType = 0;
     this.dropMaximumSize = dragAndDrop.DEFAULT_DROP_MAXIMUM_SIZE;
-    this.groupingStyle = Table.GroupingStyle.BOTTOM;
+    this.groupingStyle = Table.GroupingStyle.TOP;
     this.header = null;
     this.headerEnabled = true;
     this.headerVisible = true;
@@ -854,10 +854,16 @@ export default class Table extends Widget {
     if (tooltipText) {
       return tooltipText;
     }
-    if ($row.data('aggregateRow') && $cell.text().trim() && ($cell.isContentTruncated() || ($cell.children('.table-cell-icon').length && !$cell.children('.table-cell-icon').isVisible()))) {
-      $cell = $cell.clone();
-      $cell.children('.table-cell-icon').setVisible(true);
-      return $cell.html();
+    if ($row.data('aggregateRow') && $cell.text().trim()) {
+      let iconAvailableButHidden = $cell.children('.table-cell-icon').length && !$cell.children('.table-cell-icon').isVisible();
+      if ($cell.isContentTruncated() || iconAvailableButHidden) {
+        let $clone = $cell.clone();
+        $clone.children('.table-cell-icon').setVisible(true);
+        if ($cell.css('direction') === 'rtl') {
+          return strings.join('', $clone.children().get().map(c => c.outerHTML).reverse());
+        }
+        return $clone.html();
+      }
     }
     if (this._isTruncatedCellTooltipEnabled(column) && $cell.isContentTruncated()) {
       return strings.plainText($cell.html(), {
@@ -2408,28 +2414,22 @@ export default class Table extends Widget {
     animate = scout.nvl(animate, false);
 
     this._aggregateRows.forEach(function(aggregateRow, r) {
-      let refRow, $cell, $aggregateRow;
-
       if (aggregateRow.$row) {
         // already rendered, no need to update again (necessary for subsequent renderAggregateRows calls (e.g. in insertRows -> renderRows)
         return;
       }
 
-      refRow = onTop ? aggregateRow.nextRow : aggregateRow.prevRow;
+      let refRow = onTop ? aggregateRow.nextRow : aggregateRow.prevRow;
       if (!refRow || !refRow.$row) {
         return;
       }
 
-      $aggregateRow = this.$container.makeDiv('table-aggregate-row')
-        .data('aggregateRow', aggregateRow);
-
+      let $aggregateRow = this._buildAggregateRowDiv(aggregateRow);
       $aggregateRow[insertFunc](refRow.$row).width(this.rowWidth);
 
-      this.visibleColumns().forEach(column => {
-        $cell = $(column.buildCellForAggregateRow(aggregateRow));
-        $cell.appendTo($aggregateRow);
-        this._resizeCell($cell);
-      }, this);
+      this.visibleColumns()
+        .map(column => $(column.buildCellForAggregateRow(aggregateRow)).appendTo($aggregateRow))
+        .forEach($c => this._resizeAggregateCell($c));
 
       aggregateRow.height = $aggregateRow.outerHeight(true);
       aggregateRow.$row = $aggregateRow;
@@ -2437,6 +2437,16 @@ export default class Table extends Widget {
         this._showRow(aggregateRow);
       }
     }, this);
+  }
+
+  _buildAggregateRowDiv(aggregateRow) {
+    let onTop = this.groupingStyle === Table.GroupingStyle.TOP;
+    let $aggregateRow = this.$container
+      .makeDiv('table-aggregate-row')
+      .data('aggregateRow', aggregateRow);
+    $aggregateRow.toggleClass('grouping-style-top', onTop);
+    $aggregateRow.toggleClass('grouping-style-bottom', !onTop);
+    return $aggregateRow;
   }
 
   groupColumn(column, multiGroup, direction, remove) {
@@ -3513,7 +3523,7 @@ export default class Table extends Widget {
    * @returns {Column} the column for the given $cell
    */
   columnFor$Cell($cell, $row) {
-    $row = $row || $cell.closest('.table-row');
+    $row = $row || $cell.parent();
     let cellIndex = this.$cellsForRow($row).index($cell);
     return this.visibleColumns()[cellIndex];
   }
@@ -3909,19 +3919,155 @@ export default class Table extends Widget {
 
     this._aggregateRows.forEach(aggregateRow => {
       if (aggregateRow.$row) {
-        this._resizeCell(this.$cell(column, aggregateRow.$row));
+        this._resizeAggregateCell(this.$cell(column, aggregateRow.$row));
       }
     }, this);
 
     this._triggerColumnResized(column);
   }
 
-  _resizeCell($cell) {
-    let $cellIcon = $cell.children('.table-cell-icon');
-    $cellIcon.setVisible(true);
-    if ($cell.isContentTruncated()) {
-      $cellIcon.setVisible(false);
+  _resizeAggregateCell($cell) {
+    // A resize of aggregate columns might also be necessary if the current resize column itself does not contain any content.
+    // E.g. when having 3 columns: first and last have content, middle column is empty. While resizing the middle column,
+    // it might happen that the overlapping content from the first and the last collide. Therefore always update aggregate columns
+    // closest to $cell.
+    let range = this._getAggrCellRange($cell);
+    this._updateAggrCell(range[0]);
+    if (range.length > 1) {
+      this._updateAggrCell(range[range.length - 1]);
     }
+  }
+
+  /**
+   * Gets the aggregation cell range. this is the range from one aggregation cell with content to the next (or the table end).
+   * @param {$} $cell The cell to get the surrounding range
+   * @returns {$[]} All cells of the range to which the given cell belongs
+   */
+  _getAggrCellRange($cell) {
+    let $cells = [], $row = $cell.parent(), visibleColumns = this.visibleColumns(), $start = $cell, direction;
+    let hasContent = $c => !$c.hasClass('empty');
+    if (hasContent($cell)) {
+      direction = $cell.hasClass('halign-right') ? -1 : 1; // do not use column.horizontalAlignment here because it might be different in the aggregation row (e.g. when the first column is a number column).
+    } else {
+      direction = 1; // after start has been found: always walk to the right
+      let colIndex = visibleColumns.indexOf(this.columnFor$Cell($cell));
+      for (let pos = colIndex - 1; pos >= 0; pos--) {
+        $start = this.$cell(visibleColumns[pos], $row);
+        if (hasContent($start)) {
+          break; // next column with content reached
+        }
+      }
+    }
+
+    $cells.push($start);
+    let startIndex = visibleColumns.indexOf(this.columnFor$Cell($start));
+    for (let pos = startIndex + direction; pos >= 0 && pos < visibleColumns.length; pos += direction) {
+      let $curCell = this.$cell(visibleColumns[pos], $row);
+      $cells.push($curCell);
+      if (hasContent($curCell)) {
+        break; // next column with content reached
+      }
+    }
+    return $cells;
+  }
+
+  /**
+   * Updates the width and icon visibility of an aggregate cell in groupingStyle=title
+   * @param {$} $cell The aggregation cell that should be updated.
+   */
+  _updateAggrCell($cell) {
+    let $cellText = $cell.children('.text');
+    if (!$cellText || !$cellText.length || $cell.hasClass('empty')) {
+      return; // nothing to update (empty cell)
+    }
+
+    let $icon = $cell.children('.table-cell-icon').first();
+    let cellWidth = this._getAggrCellWidth($cell, $icon);
+    cellWidth = this._updateAggrIconVisibility($icon, $cellText, cellWidth);
+    $cellText.cssMaxWidth(cellWidth);
+  }
+
+  _getWidthWithMarginCached($element) {
+    if (!$element || !$element.length) {
+      return 0;
+    }
+
+    let widthKey = 'widthWithMargin';
+    let precomputed = $element.data(widthKey);
+    if (precomputed) {
+      return precomputed;
+    }
+
+    let originallyVisible = $element.isVisible();
+    if (!originallyVisible) {
+      $element.setVisible(true); // set visible so that the width can be read
+    }
+    let width = graphics.size($element, {includeMargin: true}).width;
+    if (!originallyVisible) {
+      $element.setVisible(false); // restore original visibility
+    }
+    $element.data(widthKey, width); // cache width
+    return width;
+  }
+
+  /**
+   * Gets the computed space that is available to the content of the cell.
+   *
+   * @param {$} $cell The aggregation cell for which the info should be computed
+   * @param {$} $icon The icon of the cell. May be null.
+   * @returns {number} The unused space available into flow direction of the cell til the end of the table or the next cell with content.
+   */
+  _getAggrCellWidth($cell, $icon) {
+    let cellSpaceForText = $cell.cssMaxWidth() - $cell.cssPaddingX();
+    if ($icon && $icon.length && $icon.isVisible()) {
+      cellSpaceForText -= this._getWidthWithMarginCached($icon);
+    }
+
+    let growsLeft = $cell.hasClass('halign-right');
+    let nextAggrCellConsumedSpace = 0;
+    let range = this._getAggrCellRange($cell);
+    for (let i = 1; i < range.length; i++) {
+      let $aggrCell = range[i];
+      cellSpaceForText += $aggrCell.cssMaxWidth();
+      if (!$aggrCell.hasClass('empty') && growsLeft ^ $aggrCell.hasClass('halign-right')) {
+        // cells grow towards each other: use the free space of the cell
+        nextAggrCellConsumedSpace = $aggrCell.children().toArray()
+          .map(item => $(item))
+          .filter($item => $item.isVisible())
+          .map($item => graphics.size($item, {includeMargin: true}).width)
+          .reduce((a, b) => a + b, 0) + $cell.cssPaddingLeft();
+        cellSpaceForText -= nextAggrCellConsumedSpace;
+      }
+    }
+
+    return Math.max(0, cellSpaceForText);
+  }
+
+  /**
+   * Sets the aggregation cell icon visible or not depending on the space available.
+   * If the available space is big enough to hold the content of the cell text and the icon, the icon will become visible. Otherwise the icon will be hidden.
+   * This way no ellipsis will be shown as long as there is enough space for the text only.
+   *
+   * @param {$} $icon The icon for which the visibility should be changed
+   * @param {$} $cellText The element holding the text of the cell. Required to compute if there is still enough space for text and icon or not
+   * @param {number} spaceAvailableForText The newly computed space available for the cell text.
+   * @returns {number} The new space available for the text. If the visibility of the icon changed, more or less space might become available.
+   */
+  _updateAggrIconVisibility($icon, $cellText, spaceAvailableForText) {
+    if (!$icon || !$icon.length) {
+      return spaceAvailableForText;
+    }
+    let isIconVisible = $icon.isVisible();
+    let iconWidth = this._getWidthWithMarginCached($icon);
+    let cellTextWidth = this._getWidthWithMarginCached($cellText);
+    let spaceForIcon = spaceAvailableForText - cellTextWidth + (isIconVisible ? iconWidth : 0);
+    let newIsIconVisible = spaceForIcon > iconWidth;
+    if (newIsIconVisible === isIconVisible) {
+      return spaceAvailableForText;
+    }
+
+    $icon.setVisible(newIsIconVisible);
+    return spaceAvailableForText + (newIsIconVisible ? -iconWidth : iconWidth);
   }
 
   moveColumn(column, visibleOldPos, visibleNewPos, dragged) {

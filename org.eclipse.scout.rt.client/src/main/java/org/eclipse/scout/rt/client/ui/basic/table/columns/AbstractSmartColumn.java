@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2017 BSI Business Systems Integration AG.
+ * Copyright (c) 2010-2021 BSI Business Systems Integration AG.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -104,18 +104,6 @@ public abstract class AbstractSmartColumn<VALUE> extends AbstractColumn<VALUE> i
   @Order(160)
   protected boolean getConfiguredSortCodesByDisplayText() {
     return false;
-  }
-
-  /**
-   * When the smart proposal finds no matching records and this property is not null, then it displays a link or menu
-   * with this label.<br>
-   * When clicked the method {@link AbstractSmartField#execBrowseNew(String)} is invoked, which in most cases is
-   * implemented as opening a "New XY..." dialog
-   */
-  @ConfigProperty(ConfigProperty.STRING)
-  @Order(315)
-  protected String getConfiguredBrowseNewText() {
-    return null;
   }
 
   /**
