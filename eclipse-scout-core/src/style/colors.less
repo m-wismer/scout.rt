@@ -22,16 +22,18 @@
 @palette-white: #fff;
 
 @palette-red-0: #FEE0E0;
-@palette-red-1: #FECAC8;
-@palette-red-2: #FEB1AB;
+@palette-red-1: #FFBFBF;
+@palette-red-2: #FF9292;
 @palette-red-3: #FF5555;
-@palette-red-4: #D53F3F;
+@palette-red-4: #D53F3F; // Accessible
+@palette-red-5: #AB3434;
 
-@palette-green-0: #DDF4EA;
-@palette-green-1: #B6ECD3;
-@palette-green-2: #86D9B2;
-@palette-green-3: #0DAF66;
-@palette-green-4: #00856C;
+@palette-green-0: #DCFBF5;
+@palette-green-1: #BDF2E8;
+@palette-green-2: #67E9D1;
+@palette-green-2-1: #1FC9AA;
+@palette-green-3: #069379; // TODO CGU ev. noch eine Stufe für steps? als ersatz für cyan-4 und ev. green 3 #24b499
+@palette-green-4: #00856C; // Accessible
 
 @palette-blue-0: #E9F0F6;
 @palette-blue-1: #C1DEF9;
@@ -48,29 +50,21 @@
 @palette-gray-3: #EFEFEF;
 @palette-gray-4: #DADADA;
 @palette-gray-5: #CFCFCF;
-@palette-gray-5-1: #BEBEBE;
+@palette-gray-5-1: #B2B2B2;
 @palette-gray-6: #999999;
-@palette-gray-6-1: #888888;
+@palette-gray-6-1: #808080;
 @palette-gray-7: #666666; // Minimal Accessible Gray
 @palette-gray-8: #5C5C5C;
 @palette-gray-9: #4C4C4C; // Dark Font
 @palette-gray-10: #262626;
 
-@palette-cyan-0: #DDFFF9;
-@palette-cyan-1: #BAF3E8;
-@palette-cyan-2: #93EDDC;
-@palette-cyan-3: #3EE1C3;
-@palette-cyan-3-1: #1FC9AA;
-@palette-cyan-4: #24B499;
-@palette-cyan-5: #1D826F;
-
 @palette-orange-0: #FCF0E5;
-@palette-orange-1: #FEE6C0;
-@palette-orange-2: #FFDB9D;
+@palette-orange-1: #FDE1B1;
+@palette-orange-2: #ffc273;
 @palette-orange-3: #FFA129;
-@palette-orange-4: #FE9915;
-@palette-orange-5: #AD6200;
-@palette-orange-6: #3e353a;
+@palette-orange-4: #DA8312;
+@palette-orange-5: #AD6200; // Accessible
+
 
 /* -------------------------------- */
 /* Global colors                    */
@@ -80,19 +74,18 @@
 @active-background-color: fade(@palette-black, 12%);
 @application-loading-background-color: @palette-white;
 @application-loading01-color: fade(@palette-blue-5, 90%);
-@application-loading02-color: @palette-cyan-4;
+@application-loading02-color: @palette-green-2-1;
 @background-color: @palette-white;
 @body-background-color: transparent;
-@border-color: @palette-gray-5;
-@control-background-color: @palette-white;
+@border-color: @palette-gray-4;
+@control-background-color: transparent;
+@control-border-color: fade(@palette-black, 23%);
 @control-color: @text-color;
-@control-disabled-background-color: @palette-gray-2;
+@control-disabled-background-color: transparent;
 @control-disabled-color: @text-disabled-color;
-/* Use lighter gray in alternative mode, only relevant for some fields with borders (e.g. text area) */
-@control-alternative-disabled-background-color: @palette-gray-1;
-@disabled-color: @palette-gray-6;
+@control-disabled-border-color: @border-color;
+@disabled-color: @palette-gray-6-1;
 @disabled-inverted-color: fade(@palette-white, 40%);
-@disabled-inverted-background-color: @palette-gray-2;
 @drop-shadow-alpha: 0.2;
 @drop-shadow-large-alpha: 0.2;
 @error-color: @palette-red-4;
@@ -108,7 +101,7 @@
 @focus-box-shadow-color: darken(@palette-blue-1, 10%);
 @focus-box-shadow-border-color: darken(@focus-box-shadow-color, 10%);
 @focus-color: @palette-blue-6;
-@highlight-color: @palette-orange-4;
+@highlight-color: @palette-orange-3;
 @highlight-inverted-background-color: @highlight-color;
 @hover-color: @palette-blue-6;
 @hover-background-color: fade(@palette-black, 8%); // Use fade to make it more independent from the background color
@@ -121,16 +114,17 @@
 @item-selection-border-color: @selected-background-color;
 @item-selection-disabled-background-color: @palette-gray-4;
 @item-selection-disabled-border-color: @palette-gray-6;
-@item-selection-nonfocus-background-color: @palette-gray-2;
+@item-selection-nonfocus-background-color: @palette-gray-1;
 @item-selection-nonfocus-border-color: @palette-gray-5;
 @item-active-background-color: @palette-gray-2;
 @label-color: @palette-gray-7;
-@label-disabled-color: @palette-gray-6-1;
+@label-disabled-color: @palette-gray-6;
 @loading-indicator-knight-rider-color: @palette-blue-3;
 @panel-background-color: @palette-gray-2;
 @read-only-color: @text-color;
 @selected-active-background-color: darken(@selected-hover-background-color, 10%);
 @selected-background-color: @palette-blue-5;
+@selected-disabled-background-color: @disabled-color;
 @selected-color: @palette-white;
 @selected-hover-background-color: @palette-blue-6;
 @selected-with-popup-background-color: @active-background-color;
@@ -142,7 +136,7 @@
 @text-selection-disabled-background-color: @palette-gray-7;
 @text-selection-disabled-color: @palette-gray-3;
 @text-field-alternative-background-color: transparent;
-@text-field-alternative-border-color: @border-color;
+@text-field-alternative-border-color: @control-border-color;
 @text-field-alternative-disabled-border-color: @palette-gray-5;
 @text-field-icon-color: @palette-gray-6;
 @text-field-icon-hover-color: @closer-hover-color;
@@ -182,11 +176,12 @@
 @calendar-weekend-out-color: @palette-blue-2;
 @carousel-status-item-color: @palette-gray-5;
 @carousel-current-item-color: @palette-black;
-@check-box-border-color: @palette-gray-7;
+@cell-editor-background-color: @palette-white;
+@check-box-border-color: @palette-gray-6-1;
 @check-box-checked-color: @selected-color;
 @check-box-checked-background-color: @selected-background-color;
 @check-box-checked-border-color: @check-box-checked-background-color;
-@check-box-checked-disabled-background-color: @disabled-color;
+@check-box-checked-disabled-background-color: @selected-disabled-background-color;
 @check-box-disabled-border-color: @border-color;
 @closer-action-color: @palette-gray-7;
 @closer-color: @icon-light-color;
@@ -200,7 +195,7 @@
 @column-background-effect-gradient1-end-background-color: @palette-green-1;
 @column-background-effect-gradient2-start-background-color: @palette-green-1;
 @column-background-effect-gradient2-end-background-color: @palette-red-2;
-@column-background-effect-bar-chart-background-color: @palette-cyan-2;
+@column-background-effect-bar-chart-background-color: @palette-blue-2;
 @command-button-border-color: @border-color;
 @command-button-selected-color: @selected-color;
 @command-button-selected-border-color: @selected-background-color;
@@ -266,7 +261,7 @@
 @filechooser-background-color: @popup-background-color;
 @form-background-color: @background-color;
 @form-menu-popup-main-menubar-background-color: @menubar-background-color;
-@key-box-background-color: @palette-orange-2;
+@key-box-background-color: @palette-orange-1;
 @key-box-border-color: @key-box-background-color;
 @key-box-background-disabled-color: @palette-gray-5;
 @key-box-border-disabled-color: @key-box-background-disabled-color;
@@ -327,7 +322,7 @@
 @proposal-chooser-status-background-color: @panel-background-color;
 @radio-button-border-color: @check-box-border-color;
 @radio-button-checked-color: @selected-background-color;
-@radio-button-checked-disabled-background-color: @check-box-checked-disabled-background-color;
+@radio-button-checked-disabled-background-color: @selected-disabled-background-color;
 @radio-button-disabled-border-color: @check-box-disabled-border-color;
 @save-needer-color: @icon-light-color;
 @scrollbar-thumb-main-color: @palette-gray-6;
@@ -422,8 +417,8 @@
 @tile-alternative-link-color: @tile-default-link-color;
 @tile-alternative-link-active-color: @tile-default-link-active-color;
 @tile-alternative-link-hover-color: @tile-default-link-hover-color;
-@tile-alternative-inverted-background-color: @palette-cyan-4;
-@tile-alternative-inverted-selection-background-color: @palette-cyan-2;
+@tile-alternative-inverted-background-color: @palette-gray-9;
+@tile-alternative-inverted-selection-background-color: @palette-gray-7;
 @tile-alternative-inverted-border-color: @tile-default-inverted-border-color;
 @tile-alternative-inverted-color: @tile-default-inverted-color;
 @tile-alternative-inverted-label-color: @tile-alternative-inverted-color;
@@ -464,7 +459,7 @@
 @tile-table-default-inverted-selection-background-color: lighten(@tile-default-inverted-background-color, 2%);
 @tile-table-default-inverted-selection-border-color: fade(@palette-white, 50%);
 @tile-table-default-inverted-border-color: fade(@palette-white, 25%);
-@tile-table-alternative-inverted-selection-background-color: lighten(@tile-alternative-inverted-background-color, 2%);
+@tile-table-alternative-inverted-selection-background-color: lighten(@tile-alternative-inverted-background-color, 5%);
 @tile-table-alternative-inverted-selection-border-color: @tile-table-default-inverted-selection-border-color;
 @time-picker-disabled-color: @date-picker-day-disabled-color;
 @time-picker-hours-color: @palette-gray-7;
