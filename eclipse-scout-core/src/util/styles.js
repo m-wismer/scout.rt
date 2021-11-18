@@ -8,12 +8,15 @@
  * Contributors:
  *     BSI Business Systems Integration AG - initial API and implementation
  */
-import {arrays, numbers, scout, strings} from '../index';
+import {arrays, numbers, scout, strings, styles} from '../index';
 import $ from 'jquery';
 
 let styleMap = {};
 
 let element = null;
+
+const WHITE = 'rgba(255, 255, 255, 1)';
+const BLACK = 'rgba(0, 0, 0, 1)';
 
 /**
  * @typedef StyleMap
@@ -141,6 +144,116 @@ export function getFirstOpaqueBackgroundColor($elem) {
     }
     $elem = $elem.parent();
   }
+}
+
+/**
+ * Returns a value representing the "perceived brightness" of a color. The
+ * value is normalized between 0 (dark) and 1 (light). This function also
+ * takes in account the hue of the given color and should produce better
+ * results (e.g. for neon colors).
+ *
+ * Definition:
+ * http://alienryderflex.com/hsp.html
+ * (works better than http://www.w3.org/TR/AERT#color-contrast)
+ *
+ * @param rgb
+ *    RGB array or rgba() string
+ * @return {null|number}
+ */
+function getPerceivedBrightness(rgb) {
+  rgb = (typeof rgb === 'string' ? styles.rgb(rgb) : rgb);
+  if (!rgb) {
+    return null;
+  }
+  // Perceived brightness, see http://alienryderflex.com/hsp.html
+  // (works better than http://www.w3.org/TR/AERT#color-contrast)
+  return Math.sqrt(
+    0.299 * Math.pow(rgb.red, 2) +
+    0.587 * Math.pow(rgb.green, 2) +
+    0.114 * Math.pow(rgb.blue, 2)
+  ) / 255;
+}
+
+/**
+ * Returns the relative luminance of the given color. The result is normalized
+ * between 0 (dark) and 1 (light).
+ *
+ * Definition:
+ * https://www.w3.org/TR/2008/REC-WCAG20-20081211/#relativeluminancedef
+ *
+ * @param rgb
+ *    RGB array or rgba() string
+ * @returns {null|number}
+ */
+function relativeLuminance(rgb) {
+  rgb = (typeof rgb === 'string' ? styles.rgb(rgb) : rgb);
+  if (!rgb) {
+    return null;
+  }
+  let r = rgb.red / 255;
+  let g = rgb.green / 255;
+  let b = rgb.blue / 255;
+  let rTransformed = (r < 0.03928 ? r / 12.92 : Math.pow((r + 0.055) / 1.055, 2.4));
+  let gTransformed = (g < 0.03928 ? g / 12.92 : Math.pow((g + 0.055) / 1.055, 2.4));
+  let bTransformed = (b < 0.03928 ? b / 12.92 : Math.pow((b + 0.055) / 1.055, 2.4));
+  return (0.2126 * rTransformed) + (0.7152 * gTransformed) + (0.0722 * bTransformed);
+}
+
+/**
+ * Returns the contrast ratio between the two given colors. The value
+ * ranges from 0 (no contrast) to 21 (maximum contrast).
+ *
+ * Recommended minimum contrast ratios:
+ * - 3.0: absolute minimum
+ * - 4.5: okay for people with normal sight
+ * - 7.0: okay for people with some vision problems
+ *
+ * Based on: https://www.w3.org/TR/WCAG20-TECHS/G17.html#G17-procedure
+ *
+ * @param rgb1
+ *    RGB array or rgba() string
+ * @param rgb2
+ *    RGB array or rgba() string
+ * @return {number}
+ */
+function getContrast(rgb1, rgb2) {
+  rgb1 = (typeof rgb1 === 'string' ? styles.rgb(rgb1) : rgb1);
+  rgb2 = (typeof rgb2 === 'string' ? styles.rgb(rgb2) : rgb2);
+  if (!rgb1 && !rgb2) {
+    return 0; // no contrast
+  }
+  if (!rgb1 || !rgb2) {
+    return 21; // max contrast
+  }
+  let p1 = relativeLuminance(rgb1);
+  let p2 = relativeLuminance(rgb2);
+  let brightest = Math.max(p1, p2);
+  let darkest = Math.min(p1, p2);
+  return (brightest + 0.05) / (darkest + 0.05);
+}
+
+/**
+ * Checks if "textColor" is readable on the given "backgroundColor".
+ * If not, BLACK or WHITE is returned, depending on which gives
+ * the better contrast.
+ */
+function getReadableTextColor(textColor, backgroundColor) {
+  if (!backgroundColor) {
+    return textColor;
+  }
+  let ct = getContrast(textColor, backgroundColor);
+  let minContrast = 7.0;
+  if (ct > minContrast) {
+    return textColor;
+  }
+  // Contrast to small -> switch to white or black
+  let cw = getContrast(backgroundColor, WHITE);
+  let cb = getContrast(backgroundColor, BLACK);
+  if (cw < minContrast && cb < minContrast) {
+    let p = getPerceivedBrightness(backgroundColor);
+    return (p < 0.65 ? WHITE : BLACK);
+  }
+  return (cw > cb ? WHITE : BLACK);
 }
 
 export function getSize(cssClass, cssProperty, property, defaultSize) {
@@ -475,5 +588,8 @@ export default {
   put,
   rgb,
   styleMap,
-  _getElement
+  _getElement,
+  getPerceivedBrightness,
+  getContrast,
+  getReadableTextColor
 };

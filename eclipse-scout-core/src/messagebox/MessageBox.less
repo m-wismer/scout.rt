@@ -14,9 +14,7 @@
   left: 0;
   min-width: 200px;
   max-width: @messagebox-max-width;
-  #scout.drop-shadow-large();
-  background-color: @messagebox-background-color;
-  border-radius: @border-radius-medium;
+  #scout.popup-2();
   overflow: hidden;
   margin: 10px /* minimum padding to desktop */ 10px 15px;
 
@@ -129,7 +127,6 @@
 
 .messagebox-content {
   min-height: 30px;
-  background-color: @messagebox-background-color;
   padding: @messagebox-label-padding 26px 17px 26px;
   display: flex;
   flex-direction: column;
@@ -170,10 +167,6 @@
   &.has-text > .messagebox-icon {
     margin-right: 12px;
   }
-}
-
-.messagebox-body {
-  color: @messagebox-body-color;
 }
 
 .messagebox-html {
