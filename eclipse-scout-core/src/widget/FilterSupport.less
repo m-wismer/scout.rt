@@ -1,0 +1,141 @@
+/*
+ * Copyright (c) 2010-2021 BSI Business Systems Integration AG.
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v1.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ *
+ * Contributors:
+ *     BSI Business Systems Integration AG - initial API and implementation
+ */
+// TODO fsh move to sizes?
+@filter-field-transition-duration: 250ms;
+@filter-field-icon-size: 24px;
+@filter-field-width: 190px;
+@filter-field-min-width: 75px;
+@filter-field-max-width: 60%;
+@filter-field-bottom: 6px;
+@filter-field-right: 14px;
+
+.filter-field.string-field {
+  position: absolute;
+  bottom: @filter-field-bottom;
+  right: @filter-field-right;
+  height: @logical-grid-row-height;
+  width: @filter-field-width;
+  min-width: @filter-field-min-width;
+  max-width: @filter-field-max-width;
+  display: flex;
+  align-items: center;
+  z-index: 1;
+  border-radius: @border-radius;
+  #scout.drop-shadow();
+  background-color: var(--filter-field-background-color);
+  opacity: 1;
+
+  transition: bottom @filter-field-transition-duration ease-in-out,
+  right @filter-field-transition-duration ease-in-out,
+  height @filter-field-transition-duration ease-in-out,
+  width @filter-field-transition-duration ease-in-out,
+  min-width @filter-field-transition-duration ease-in-out,
+  max-width @filter-field-transition-duration ease-in-out,
+  box-shadow @filter-field-transition-duration ease-in-out,
+  opacity @filter-field-transition-duration ease-in-out;
+
+  :not(:hover):not(:focus) > &:not(.focused) {
+    opacity: 0;
+  }
+
+  &::before {
+    content: @icon-search;
+    #scout.font-icon();
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: absolute;
+    bottom: (@logical-grid-row-height - @filter-field-icon-size) / 2;
+    right: @text-field-icon-margin-x + 1px;
+    height: @filter-field-icon-size;
+    width: @filter-field-icon-size;
+    opacity: 0;
+    transition: bottom @filter-field-transition-duration ease-in-out,
+    right @filter-field-transition-duration ease-in-out,
+    opacity @filter-field-transition-duration ease-in-out;
+    font-size: @font-size-icon;
+    color: @label-color;
+    border-radius: @border-radius;
+  }
+
+  &:hover::before {
+    background-color: @hover-background-color;
+  }
+
+  & > :not(.key-box) {
+    opacity: 1;
+    transition: opacity @filter-field-transition-duration ease-in-out;
+  }
+
+  & > input {
+    width: 100%;
+    min-height: 100%;
+  }
+
+  &.clearable-always:not(.has-text),
+  &.clearable-focused:not(.has-text):not(.focused) {
+    & > .clear-icon {
+      .invisible();
+    }
+  }
+
+  & > .clear-icon {
+    display: flex;
+    right: @text-field-icon-margin-x + 1px;
+    margin-right: 0;
+    transition: right @filter-field-transition-duration ease-in-out,
+    opacity @filter-field-transition-duration ease-in-out;
+  }
+
+  & > .key-box {
+    top: calc(~'50% - ' 22px / 2);
+
+    &.char {
+      margin-left: -10px;
+      margin-right: -5px;
+    }
+  }
+
+  &:not(.focused).empty {
+    bottom: @filter-field-bottom + ((@logical-grid-row-height - @filter-field-icon-size) / 2);
+    right: @filter-field-right + @text-field-icon-margin-x + 1px;
+    height: @filter-field-icon-size;
+    width: @filter-field-icon-size;
+    min-width: @filter-field-icon-size;
+    max-width: @filter-field-icon-size;
+    box-shadow: none;
+    background-color: var(--filter-field-transparent-background-color);
+    // TODO fsh backdrop-filter
+    backdrop-filter: blur(1px);
+
+    &::before {
+      bottom: 0;
+      right: 0;
+      opacity: 1;
+    }
+
+    & > :not(.key-box) {
+      opacity: 0;
+    }
+
+    & > input {
+      cursor: pointer;
+    }
+
+    & > .clear-icon {
+      right: 0;
+    }
+  }
+
+  &.disabled {
+    .hidden();
+  }
+}

@@ -21,6 +21,7 @@ import {
   DoubleClickSupport,
   dragAndDrop,
   Event,
+  FilterSupport,
   graphics,
   HtmlComponent,
   Insets,
@@ -39,7 +40,6 @@ import {
   strings,
   styles,
   TableCopyKeyStroke,
-  TableFocusFilterFieldKeyStroke,
   TableLayout,
   TableNavigationCollapseKeyStroke,
   TableNavigationDownKeyStroke,
@@ -140,6 +140,11 @@ export default class Table extends Widget {
     this.viewRangeDirty = false;
     this.viewRangeRendered = new Range(0, 0);
     this.virtual = true;
+
+    this.textFilterEnabled = false;
+    this.filterSupport = this._createFilterSupport();
+    this.filteredElementsDirty = false;
+
     this._doubleClickSupport = new DoubleClickSupport();
     this._permanentHeadSortColumns = [];
     this._permanentTailSortColumns = [];
@@ -395,7 +400,6 @@ export default class Table extends Widget {
       new TableNavigationEndKeyStroke(this),
       new TableNavigationCollapseKeyStroke(this),
       new TableNavigationExpandKeyStroke(this),
-      new TableFocusFilterFieldKeyStroke(this),
       new TableStartCellEditKeyStroke(this),
       new TableSelectAllKeyStroke(this),
       new TableRefreshKeyStroke(this),
@@ -506,6 +510,7 @@ export default class Table extends Widget {
     this._renderFooterVisible();
     this._renderCheckableStyle();
     this._renderHierarchicalStyle();
+    this._renderTextFilterEnabled();
   }
 
   _setCssClass(cssClass) {
@@ -543,6 +548,7 @@ export default class Table extends Widget {
     if (this.$data) {
       this._removeData();
     }
+    this.filterSupport.remove();
     super._remove();
   }
 
@@ -3522,12 +3528,13 @@ export default class Table extends Widget {
     let updateTree = scout.nvl(options.updateTree, false),
       updateFilteredRows = scout.nvl(options.filteredRows, updateTree),
       applyFilters = scout.nvl(options.applyFilters, updateFilteredRows),
+      filtersChanged = scout.nvl(options.filtersChanged, false),
       updateVisibleRows = scout.nvl(options.visibleRows, updateFilteredRows);
     if (updateTree) {
       this._rebuildTreeStructure();
     }
     if (updateFilteredRows) {
-      this._updateFilteredRows(applyFilters);
+      this._updateFilteredRows(applyFilters, filtersChanged);
     }
     if (updateVisibleRows) {
       this._updateVisibleRows();
@@ -3689,10 +3696,8 @@ export default class Table extends Widget {
     this._renderEmptyData();
   }
 
-  filter() {
-    this._updateRowStructure({
-      filteredRows: true
-    });
+  filter(options) {
+    this._updateRowStructure($.extend(true, {}, options, {filteredRows: true}));
     this._renderRowDelta();
     this._group();
     this.revealSelection();
@@ -4648,6 +4653,11 @@ export default class Table extends Widget {
       this._removeFooter();
     }
     this.invalidateLayoutTree();
+
+    if (!this.filterSupport) {
+      return;
+    }
+    this.filterSupport.renderFilterField();
   }
 
   _renderFooter() {
@@ -5327,6 +5337,53 @@ export default class Table extends Widget {
     arrays.ensure(rows || this.rows).forEach(row => {
       row.status = TableRow.Status.NON_CHANGED;
     });
+  }
+
+  /**
+   * @returns {FilterSupport}
+   */
+  _createFilterSupport() {
+    return new FilterSupport({
+      widget: this,
+      $container: () => this.$container,
+      getElementsForFiltering: () => this.rows,
+      createTextFilter: () => scout.create('TableTextUserFilter', {
+        session: this.session,
+        table: this
+      }),
+      updateTextFilterText: (filter, text) => {
+        if (objects.equals(filter.text, text)) {
+          return false;
+        }
+        filter.text = text;
+        return true;
+      }
+    });
+  }
+
+  setTextFilterEnabled(textFilterEnabled) {
+    this.setProperty('textFilterEnabled', textFilterEnabled);
+  }
+
+  isTextFilterFieldVisible() {
+    return this.textFilterEnabled && !this.footerVisible;
+  }
+
+  _renderTextFilterEnabled() {
+    if (!this.filterSupport) {
+      return;
+    }
+    this.filterSupport.renderFilterField();
+  }
+
+  updateFilteredElements() {
+    if (this.filteredElementsDirty) {
+      this.filter({
+        applyFilters: false,
+        filtersChanged: true
+      });
+      this.filteredElementsDirty = false;
+    }
   }
 
   /* --- STATIC HELPERS ------------------------------------------------------------- */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2017 BSI Business Systems Integration AG.
+ * Copyright (c) 2010-2021 BSI Business Systems Integration AG.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -19,6 +19,8 @@ export default class ListBox extends LookupBox {
     this.lookupStatus = null;
     this.clearable = ValueField.Clearable.NEVER;
 
+    this.textFilterEnabled = true;
+
     this._addWidgetProperties(['table', 'filterBox']);
   }
 
@@ -26,6 +28,7 @@ export default class ListBox extends LookupBox {
     super._init(model);
     this.table.on('rowsChecked', this._onTableRowsChecked.bind(this));
     this.table.setScrollTop(this.scrollTop);
+    this.table.setTextFilterEnabled(this.textFilterEnabled);
   }
 
   _initStructure(value) {
@@ -46,6 +49,15 @@ export default class ListBox extends LookupBox {
   _renderStructure() {
     this.table.render(this.$fieldContainer);
     this.addField(this.table.$container);
+  }
+
+  setTextFilterEnabled(textFilterEnabled) {
+    this.setProperty('textFilterEnabled', textFilterEnabled);
+  }
+
+  _setTextFilterEnabled(textFilterEnabled) {
+    this._setProperty('textFilterEnabled', textFilterEnabled);
+    this.table.setTextFilterEnabled(textFilterEnabled);
   }
 
   _onTableRowsChecked(event) {
