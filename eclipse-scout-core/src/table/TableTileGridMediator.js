@@ -628,13 +628,7 @@ export default class TableTileGridMediator extends Widget {
   _syncFiltersFromTableToTile() {
     if (this.tileAccordion) {
       this.tileAccordion.setTileFilters([]);
-      Object.keys(this.table._filterMap)
-        .map(function(key) {
-          return this.table._filterMap[key];
-        }, this)
-        .forEach(function(tableFilter) {
-          this._addFilter(tableFilter);
-        }, this);
+      this.table.filterSupport.getFilters().forEach(tableFilter => this._addFilter(tableFilter), this);
       this.tileAccordion.filterTiles();
     }
   }

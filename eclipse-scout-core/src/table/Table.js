@@ -106,6 +106,7 @@ export default class Table extends Widget {
     this.tileTableHeader = null;
     this.footer = null;
     this.footerVisible = false;
+    // TODO fsh ask cgu about this, do we need/want this?
     this.filters = [];
     this.rows = [];
     this.rootRows = [];
@@ -125,7 +126,6 @@ export default class Table extends Widget {
     this.staticMenus = [];
     this.selectionHandler = new TableSelectionHandler(this);
     this.tooltips = [];
-    this._filterMap = {};
     this._filteredRows = [];
     this.tableNodeColumn = null;
     this._maxLevel = 0;
@@ -2737,11 +2737,7 @@ export default class Table extends Widget {
       this.rows.push(row);
     }, this);
 
-    let filterAcceptedRows = rows.filter(function(row) {
-      this._applyFiltersForRow(row);
-      return row.filterAccepted;
-    }, this);
-
+    this.filterSupport.applyFilters(rows);
     this._updateRowStructure({
       updateTree: true,
       filteredRows: true,
@@ -2749,7 +2745,7 @@ export default class Table extends Widget {
       visibleRows: true
     });
     // Notify changed filter if there are user filters and at least one of the new rows is accepted by them
-    if (this._filterCount() > 0 && filterAcceptedRows.length > 0) {
+    if (this._filterCount() > 0 && rows.some(row => row.filterAccepted)) {
       this._triggerFilter();
     }
 
@@ -3439,7 +3435,7 @@ export default class Table extends Widget {
   }
 
   _filterCount() {
-    return Object.keys(this._filterMap).length;
+    return this.filterSupport.filterCount();
   }
 
   filteredRows() {
@@ -3734,30 +3730,11 @@ export default class Table extends Widget {
     });
   }
 
-  _rowAcceptedByFilters(row) {
-    for (let key in this._filterMap) { // NOSONAR
-      let filter = this._filterMap[key];
-      if (!filter.accept(row)) {
-        return false;
-      }
-    }
-    return true;
-  }
-
   /**
    * @returns {Boolean} true if row state has changed, false if not
    */
   _applyFiltersForRow(row) {
-    if (this._rowAcceptedByFilters(row)) {
-      if (!row.filterAccepted) {
-        row.filterAccepted = true;
-        return true;
-      }
-    } else if (row.filterAccepted) {
-      row.filterAccepted = false;
-      return true;
-    }
-    return false;
+    return this.filterSupport.applyFiltersForElement(row);
   }
 
   /**
@@ -3765,32 +3742,27 @@ export default class Table extends Widget {
    */
   filteredBy() {
     let filteredBy = [];
-    for (let key in this._filterMap) { // NOSONAR
-      let filter = this._filterMap[key];
+    this.filterSupport.getFilters().forEach(filter => {
       // check if filter supports label
       if (typeof filter.createLabel === 'function') {
         filteredBy.push(filter.createLabel());
       }
-    }
+    });
     return filteredBy;
   }
 
-  resetUserFilter() {
-    let filter;
-    for (let key in this._filterMap) { // NOSONAR
-      filter = this._filterMap[key];
+  resetUserFilter(applyFilter = true) {
+    this.filterSupport.getFilters().forEach(filter => {
       if (filter instanceof TableUserFilter) {
-        this.removeFilterByKey(key);
+        this.removeFilter(filter, applyFilter);
       }
-    }
+    });
 
-    // reset rows
-    this.filter();
     this._triggerFilterReset();
   }
 
   hasUserFilter() {
-    return objects.values(this._filterMap)
+    return this.filterSupport.getFilters()
       .filter(filter => {
         return filter instanceof TableUserFilter;
       })
@@ -3828,31 +3800,31 @@ export default class Table extends Widget {
   /**
    * @param filter object with createKey() and accept()
    */
-  addFilter(filter) {
+  addFilter(filter, applyFilter) {
     let key = filter.createKey();
-    if (!key) {
-      throw new Error('key has to be defined');
-    }
-    this._filterMap[key] = filter;
+
+    let previousFilter = this.getFilter(key);
+    this.filterSupport.removeFilter(previousFilter);
+
+    filter.key = key;
+    this.filterSupport.addFilter(filter, applyFilter);
 
     this.trigger('filterAdded', {
       filter: filter
     });
   }
 
-  removeFilter(filter) {
-    this.removeFilterByKey(filter.createKey());
+  // TODO fsh maybe better
+  removeFilter(filter, applyFilter) {
+    this.removeFilterByKey(filter.createKey(), applyFilter);
   }
 
-  removeFilterByKey(key) {
-    if (!key) {
-      throw new Error('key has to be defined');
-    }
-    let filter = this._filterMap[key];
+  removeFilterByKey(key, applyFilter) {
+    let filter = this.getFilter(key);
     if (!filter) {
       return;
     }
-    delete this._filterMap[key];
+    this.filterSupport.removeFilter(filter, applyFilter);
     this.trigger('filterRemoved', {
       filter: filter
     });
@@ -3862,7 +3834,7 @@ export default class Table extends Widget {
     if (!key) {
       throw new Error('key has to be defined');
     }
-    return this._filterMap[key];
+    return arrays.find(this.filterSupport.getFilters(), f => f.key === key);
   }
 
   /**
@@ -4360,13 +4332,7 @@ export default class Table extends Widget {
   }
 
   setFilters(filters) {
-    let filter;
-    for (let key in this._filterMap) { // NOSONAR
-      filter = this._filterMap[key];
-      if (filter instanceof TableUserFilter) {
-        this.removeFilterByKey(key);
-      }
-    }
+    this.resetUserFilter(false);
     if (filters) {
       filters.forEach(function(filter) {
         filter = this._ensureFilter(filter);
@@ -5379,6 +5345,7 @@ export default class Table extends Widget {
   updateFilteredElements() {
     if (this.filteredElementsDirty) {
       this.filter({
+        filteredRows: true,
         applyFilters: false,
         filtersChanged: true
       });

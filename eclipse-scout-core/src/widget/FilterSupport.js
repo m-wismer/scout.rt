@@ -187,11 +187,11 @@ export default class FilterSupport extends WidgetSupport {
     this._removeFilterField();
   }
 
-  addFilter(filter) {
-    this.addFilters([filter]);
+  addFilter(filter, applyFilter) {
+    this.addFilters([filter], applyFilter);
   }
 
-  addFilters(filtersToAdd) {
+  addFilters(filtersToAdd, applyFilter) {
     filtersToAdd = arrays.ensure(filtersToAdd);
     let filters = this._filters.slice();
     filtersToAdd.forEach(filter => {
@@ -204,19 +204,33 @@ export default class FilterSupport extends WidgetSupport {
       return;
     }
     this._filters = filters;
+    if (applyFilter) {
+      this.filter();
+    }
   }
 
-  removeFilter(filter) {
-    this.removeFilters([filter]);
+  removeFilter(filter, applyFilter) {
+    this.removeFilters([filter], applyFilter);
   }
 
-  removeFilters(filtersToRemove) {
+  removeFilters(filtersToRemove, applyFilter) {
     filtersToRemove = arrays.ensure(filtersToRemove);
     let filters = this._filters.slice();
     if (!arrays.removeAll(filters, filtersToRemove)) {
       return;
     }
     this._filters = filters;
+    if (applyFilter) {
+      this.filter();
+    }
+  }
+
+  getFilters() {
+    return [...this._filters];
+  }
+
+  filterCount() {
+    return this._filters.length;
   }
 
   filter() {
@@ -231,7 +245,7 @@ export default class FilterSupport extends WidgetSupport {
     let newlyHidden = [];
     let changed = false;
     elements.forEach(element => {
-      if (this._applyFiltersForElement(element)) {
+      if (this.applyFiltersForElement(element)) {
         changed = true;
         if (element.filterAccepted) {
           newlyShown.push(element);
@@ -252,7 +266,7 @@ export default class FilterSupport extends WidgetSupport {
     };
   }
 
-  _applyFiltersForElement(element) {
+  applyFiltersForElement(element) {
     if (this._elementAcceptedByFilters(element)) {
       if (!element.filterAccepted) {
         element.setFilterAccepted(true);
