@@ -727,8 +727,6 @@ export default class TableFooter extends Widget {
       } else {
         this.table.removeFilterByKey(TableTextUserFilter.TYPE);
       }
-
-      this.table.filter();
     }
   }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2019 BSI Business Systems Integration AG.
+ * Copyright (c) 2010-2021 BSI Business Systems Integration AG.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -906,7 +906,6 @@ describe('TileGrid', () => {
         accept: tile => tile.label.indexOf('1') < 0
       };
       tileGrid.addFilter(filter1);
-      tileGrid.filter();
       expect(tileGrid.filteredTiles.length).toBe(2);
       expect(tileGrid.filteredTiles[0]).toBe(tileGrid.tiles[0]);
       expect(tileGrid.filteredTiles[1]).toBe(tileGrid.tiles[2]);
@@ -918,7 +917,6 @@ describe('TileGrid', () => {
         accept: tile => tile.label.indexOf('2') < 0
       };
       tileGrid.addFilter(filter2);
-      tileGrid.filter();
       expect(tileGrid.filteredTiles.length).toBe(1);
       expect(tileGrid.filteredTiles[0]).toBe(tileGrid.tiles[0]);
       expect(tileGrid.tiles[0].filterAccepted).toBe(true);
@@ -926,7 +924,6 @@ describe('TileGrid', () => {
       expect(tileGrid.tiles[2].filterAccepted).toBe(false);
 
       tileGrid.removeFilter(filter1);
-      tileGrid.filter();
       expect(tileGrid.filteredTiles.length).toBe(2);
       expect(tileGrid.filteredTiles[0]).toBe(tileGrid.tiles[0]);
       expect(tileGrid.filteredTiles[1]).toBe(tileGrid.tiles[1]);
@@ -935,7 +932,6 @@ describe('TileGrid', () => {
       expect(tileGrid.tiles[2].filterAccepted).toBe(false);
 
       tileGrid.removeFilter(filter2);
-      tileGrid.filter();
       expect(tileGrid.filteredTiles.length).toBe(3);
       expect(tileGrid.filters.length).toBe(0);
       expect(tileGrid.filteredTiles[0]).toBe(tileGrid.tiles[0]);
@@ -947,7 +943,6 @@ describe('TileGrid', () => {
 
       // Add same first filter again
       tileGrid.addFilter(filter1);
-      tileGrid.filter();
       expect(tileGrid.filteredTiles.length).toBe(2);
       expect(tileGrid.filteredTiles[0]).toBe(tileGrid.tiles[0]);
       expect(tileGrid.filteredTiles[1]).toBe(tileGrid.tiles[2]);

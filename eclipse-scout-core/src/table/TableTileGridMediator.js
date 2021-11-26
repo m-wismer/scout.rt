@@ -327,7 +327,6 @@ export default class TableTileGridMediator extends Widget {
       this.table.addFilter(scout.create('TileTableHierarchyFilter', {
         table: this.table
       }));
-      this.table.filter();
     }
 
     // doesn't depend upon any tile data, therefore execute on activation
@@ -355,7 +354,6 @@ export default class TableTileGridMediator extends Widget {
     }
 
     this.table.removeFilter(scout.create('TileTableHierarchyFilter'));
-    this.table.filter();
 
     this._syncScrollTopFromTileGridToTable();
 
@@ -523,6 +521,7 @@ export default class TableTileGridMediator extends Widget {
       return;
     }
     this._addFilter(event.filter);
+    this.tileAccordion.filterTiles();
   }
 
   _onTableFilterRemoved(event) {
@@ -628,7 +627,7 @@ export default class TableTileGridMediator extends Widget {
   _syncFiltersFromTableToTile() {
     if (this.tileAccordion) {
       this.tileAccordion.setTileFilters([]);
-      this.table.filterSupport.getFilters().forEach(tableFilter => this._addFilter(tableFilter), this);
+      this.table.filters.forEach(tableFilter => this._addFilter(tableFilter));
       this.tileAccordion.filterTiles();
     }
   }

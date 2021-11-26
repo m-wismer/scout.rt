@@ -106,7 +106,6 @@ export default class Table extends Widget {
     this.tileTableHeader = null;
     this.footer = null;
     this.footerVisible = false;
-    // TODO fsh ask cgu about this, do we need/want this?
     this.filters = [];
     this.rows = [];
     this.rootRows = [];
@@ -3435,7 +3434,7 @@ export default class Table extends Widget {
   }
 
   _filterCount() {
-    return this.filterSupport.filterCount();
+    return this.filters.length;
   }
 
   filteredRows() {
@@ -3692,13 +3691,6 @@ export default class Table extends Widget {
     this._renderEmptyData();
   }
 
-  filter(options) {
-    this._updateRowStructure($.extend(true, {}, options, {filteredRows: true}));
-    this._renderRowDelta();
-    this._group();
-    this.revealSelection();
-  }
-
   /**
    * Sorts the given $rows according to the row index
    */
@@ -3742,7 +3734,7 @@ export default class Table extends Widget {
    */
   filteredBy() {
     let filteredBy = [];
-    this.filterSupport.getFilters().forEach(filter => {
+    this.filters.forEach(filter => {
       // check if filter supports label
       if (typeof filter.createLabel === 'function') {
         filteredBy.push(filter.createLabel());
@@ -3752,17 +3744,14 @@ export default class Table extends Widget {
   }
 
   resetUserFilter(applyFilter = true) {
-    this.filterSupport.getFilters().forEach(filter => {
-      if (filter instanceof TableUserFilter) {
-        this.removeFilter(filter, applyFilter);
-      }
-    });
+    this.filters.filter(filter => filter instanceof TableUserFilter)
+      .forEach(filter => this.removeFilter(filter, applyFilter));
 
     this._triggerFilterReset();
   }
 
   hasUserFilter() {
-    return this.filterSupport.getFilters()
+    return this.filters
       .filter(filter => {
         return filter instanceof TableUserFilter;
       })
@@ -3800,13 +3789,13 @@ export default class Table extends Widget {
   /**
    * @param filter object with createKey() and accept()
    */
-  addFilter(filter, applyFilter) {
-    let key = filter.createKey();
+  addFilter(filter, applyFilter = true) {
+    this._updateFilterKey(filter);
+    if (filter && filter.key) {
+      let previousFilter = this.getFilter(filter.key);
+      this.filterSupport.removeFilter(previousFilter);
+    }
 
-    let previousFilter = this.getFilter(key);
-    this.filterSupport.removeFilter(previousFilter);
-
-    filter.key = key;
     this.filterSupport.addFilter(filter, applyFilter);
 
     this.trigger('filterAdded', {
@@ -3814,12 +3803,20 @@ export default class Table extends Widget {
     });
   }
 
-  // TODO fsh maybe better
-  removeFilter(filter, applyFilter) {
-    this.removeFilterByKey(filter.createKey(), applyFilter);
+  removeFilter(filter, applyFilter = true) {
+    let key = this._getFilterKey(filter);
+    if (key) {
+      this.removeFilterByKey(key, applyFilter);
+      return;
+    }
+
+    this.filterSupport.removeFilter(filter, applyFilter);
+    this.trigger('filterRemoved', {
+      filter: filter
+    });
   }
 
-  removeFilterByKey(key, applyFilter) {
+  removeFilterByKey(key, applyFilter = true) {
     let filter = this.getFilter(key);
     if (!filter) {
       return;
@@ -3834,7 +3831,101 @@ export default class Table extends Widget {
     if (!key) {
       throw new Error('key has to be defined');
     }
-    return arrays.find(this.filterSupport.getFilters(), f => f.key === key);
+    return arrays.find(this.filters, f => f.key === key);
+  }
+
+  setFilters(filters, applyFilter = true) {
+    this.resetUserFilter(false);
+    filters = filters.map(filter => this._ensureFilter(filter));
+    filters.forEach(filter => this._updateFilterKey(filter));
+    this.filterSupport.setFilters(filters, applyFilter);
+  }
+
+  _ensureFilter(filter) {
+    if (filter instanceof TableUserFilter || !filter.objectType) {
+      return filter;
+    }
+    if (filter.column) {
+      filter.column = this.columnById(filter.column);
+    }
+    filter.table = this;
+    filter.session = this.session;
+    return scout.create(filter);
+  }
+
+  _getFilterKey(filter) {
+    if (filter && filter.key) {
+      return filter.key;
+    }
+    if (objects.isPlainObject(filter) && objects.isFunction(filter.createKey)) {
+      return filter.createKey();
+    }
+    return null;
+  }
+
+  _updateFilterKey(filter) {
+    if (objects.isPlainObject(filter) && objects.isFunction(filter.createKey)) {
+      filter.key = filter.createKey();
+    }
+  }
+
+  filter() {
+    this.filterSupport.filter();
+  }
+
+  _filter(options) {
+    this._updateRowStructure($.extend(true, {}, options, {filteredRows: true}));
+    this._renderRowDelta();
+    this._group();
+    this.revealSelection();
+  }
+
+  /**
+   * @returns {FilterSupport}
+   */
+  _createFilterSupport() {
+    return new FilterSupport({
+      widget: this,
+      $container: () => this.$container,
+      getElementsForFiltering: () => this.rows,
+      createTextFilter: () => scout.create('TableTextUserFilter', {
+        session: this.session,
+        table: this
+      }),
+      updateTextFilterText: (filter, text) => {
+        if (objects.equals(filter.text, text)) {
+          return false;
+        }
+        filter.text = text;
+        return true;
+      }
+    });
+  }
+
+  setTextFilterEnabled(textFilterEnabled) {
+    this.setProperty('textFilterEnabled', textFilterEnabled);
+  }
+
+  isTextFilterFieldVisible() {
+    return this.textFilterEnabled && !this.footerVisible;
+  }
+
+  _renderTextFilterEnabled() {
+    if (!this.filterSupport) {
+      return;
+    }
+    this.filterSupport.renderFilterField();
+  }
+
+  updateFilteredElements() {
+    if (this.filteredElementsDirty) {
+      this._filter({
+        filteredRows: true,
+        applyFilters: false,
+        filtersChanged: true
+      });
+      this.filteredElementsDirty = false;
+    }
   }
 
   /**
@@ -4329,28 +4420,6 @@ export default class Table extends Widget {
   _setKeyStrokes(keyStrokes) {
     this.updateKeyStrokes(keyStrokes, this.keyStrokes);
     this._setProperty('keyStrokes', keyStrokes);
-  }
-
-  setFilters(filters) {
-    this.resetUserFilter(false);
-    if (filters) {
-      filters.forEach(function(filter) {
-        filter = this._ensureFilter(filter);
-        this.addFilter(filter);
-      }, this);
-    }
-  }
-
-  _ensureFilter(filter) {
-    if (filter instanceof TableUserFilter) {
-      return filter;
-    }
-    if (filter.column) {
-      filter.column = this.columnById(filter.column);
-    }
-    filter.table = this;
-    filter.session = this.session;
-    return scout.create(filter);
   }
 
   setTableStatus(status) {
@@ -5303,54 +5372,6 @@ export default class Table extends Widget {
     arrays.ensure(rows || this.rows).forEach(row => {
       row.status = TableRow.Status.NON_CHANGED;
     });
-  }
-
-  /**
-   * @returns {FilterSupport}
-   */
-  _createFilterSupport() {
-    return new FilterSupport({
-      widget: this,
-      $container: () => this.$container,
-      getElementsForFiltering: () => this.rows,
-      createTextFilter: () => scout.create('TableTextUserFilter', {
-        session: this.session,
-        table: this
-      }),
-      updateTextFilterText: (filter, text) => {
-        if (objects.equals(filter.text, text)) {
-          return false;
-        }
-        filter.text = text;
-        return true;
-      }
-    });
-  }
-
-  setTextFilterEnabled(textFilterEnabled) {
-    this.setProperty('textFilterEnabled', textFilterEnabled);
-  }
-
-  isTextFilterFieldVisible() {
-    return this.textFilterEnabled && !this.footerVisible;
-  }
-
-  _renderTextFilterEnabled() {
-    if (!this.filterSupport) {
-      return;
-    }
-    this.filterSupport.renderFilterField();
-  }
-
-  updateFilteredElements() {
-    if (this.filteredElementsDirty) {
-      this.filter({
-        filteredRows: true,
-        applyFilters: false,
-        filtersChanged: true
-      });
-      this.filteredElementsDirty = false;
-    }
   }
 
   /* --- STATIC HELPERS ------------------------------------------------------------- */

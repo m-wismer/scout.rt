@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 BSI Business Systems Integration AG.
+ * Copyright (c) 2010-2021 BSI Business Systems Integration AG.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -203,6 +203,12 @@ public abstract class AbstractTreeBox<T> extends AbstractValueField<Set<T>> impl
     return false;
   }
 
+  @ConfigProperty(ConfigProperty.BOOLEAN)
+  @Order(320)
+  protected boolean getConfiguredTextFilterEnabled() {
+    return true;
+  }
+
   @Override
   protected double getConfiguredGridWeightY() {
     return 1.0;
@@ -349,6 +355,7 @@ public abstract class AbstractTreeBox<T> extends AbstractValueField<Set<T>> impl
       LOG.warn("there is no inner class of type ITree in {}", getClass().getName());
     }
     getTree().setAutoCheckChildNodes(getConfiguredAutoCheckChildNodes());
+    getTree().setTextFilterEnabled(getConfiguredTextFilterEnabled());
 
     Class<? extends ILookupCall<T>> lookupCallClass = getConfiguredLookupCall();
     if (lookupCallClass != null) {
@@ -792,6 +799,16 @@ public abstract class AbstractTreeBox<T> extends AbstractValueField<Set<T>> impl
   @Override
   public void setAutoCheckChildNodes(boolean b) {
     getTree().setAutoCheckChildNodes(b);
+  }
+
+  @Override
+  public boolean isTextFilterEnabled() {
+    return getTree().isTextFilterEnabled();
+  }
+
+  @Override
+  public void setTextFilterEnabled(boolean textFilterEnabled) {
+    getTree().setTextFilterEnabled(textFilterEnabled);
   }
 
   @SuppressWarnings("unchecked")

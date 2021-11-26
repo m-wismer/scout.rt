@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2017 BSI Business Systems Integration AG.
+ * Copyright (c) 2010-2021 BSI Business Systems Integration AG.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -26,6 +26,8 @@ export default class LookupBox extends ValueField {
     this._pendingLookup = null;
     this._lookupExecuted = false;
     this._valueSyncing = false; // true when value is either syncing to table or table to value
+
+    this.textFilterEnabled = true;
 
     this._addCloneProperties(['lookupCall']);
   }
@@ -210,6 +212,14 @@ export default class LookupBox extends ValueField {
     }
 
     return this._formatLookupRows(this.getCheckedLookupRows());
+  }
+
+  setTextFilterEnabled(textFilterEnabled) {
+    this.setProperty('textFilterEnabled', textFilterEnabled);
+  }
+
+  _setTextFilterEnabled(textFilterEnabled) {
+    this._setProperty('textFilterEnabled', textFilterEnabled);
   }
 
   _formatLookupRows(lookupRows) {

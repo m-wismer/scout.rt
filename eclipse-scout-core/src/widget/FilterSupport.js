@@ -14,6 +14,7 @@ import FocusFilterFieldKeyStroke from '../keystroke/FocusFilterFieldKeyStroke';
 export default class FilterSupport extends WidgetSupport {
   /**
    * @typedef {WidgetSupportOptions} FilterSupportOptions
+   * @property {Function} filterElements Filter all elements.
    * @property {Function} getElementsForFiltering Get all elements to which the filters should be applied.
    * @property {Function} getElementText Get text of an element.
    * @property {Function} createTextFilter Create a text filter.
@@ -26,8 +27,13 @@ export default class FilterSupport extends WidgetSupport {
   constructor(options) {
     super(options);
 
-    scout.assertParameter('getElementsForFiltering', options.getElementsForFiltering);
-    this._getElementsForFiltering = options.getElementsForFiltering;
+    if (options.filterElements) {
+      this._filterElements = options.filterElements;
+    } else {
+      this._filterElements = this._filter.bind(this);
+      scout.assertParameter('getElementsForFiltering', options.getElementsForFiltering);
+      this._getElementsForFiltering = options.getElementsForFiltering;
+    }
     this._getElementText = options.getElementText || ((element) => $(element).text());
 
     if (options.createTextFilter) {
@@ -49,8 +55,6 @@ export default class FilterSupport extends WidgetSupport {
     this._exitFilterFieldKeyStroke = null;
 
     this._textFilter = null;
-
-    this._filters = [];
   }
 
   _createDefaultTextFilter() {
@@ -188,57 +192,104 @@ export default class FilterSupport extends WidgetSupport {
   }
 
   addFilter(filter, applyFilter) {
-    this.addFilters([filter], applyFilter);
-  }
-
-  addFilters(filtersToAdd, applyFilter) {
-    filtersToAdd = arrays.ensure(filtersToAdd);
-    let filters = this._filters.slice();
-    filtersToAdd.forEach(filter => {
-      if (filters.indexOf(filter) >= 0) {
+    let filtersToAdd = arrays.ensure(filter);
+    let filters = this._getFilters().slice();
+    filtersToAdd.forEach(f => {
+      if (this._hasFilter(filters, f)) {
         return;
       }
-      filters.push(filter);
+      filters.push(f);
     });
-    if (filters.length === this._filters.length) {
+    if (filters.length === this._getFilters().length) {
       return;
     }
-    this._filters = filters;
-    if (applyFilter) {
-      this.filter();
-    }
+    this._setFilters(filters, applyFilter);
   }
 
   removeFilter(filter, applyFilter) {
-    this.removeFilters([filter], applyFilter);
-  }
+    let filtersToRemove = arrays.ensure(filter);
+    let filters = this._getFilters().slice();
 
-  removeFilters(filtersToRemove, applyFilter) {
-    filtersToRemove = arrays.ensure(filtersToRemove);
-    let filters = this._filters.slice();
-    if (!arrays.removeAll(filters, filtersToRemove)) {
+    let changed = false;
+    filtersToRemove.forEach(f => {
+      if (objects.isFunction(f)) {
+        f = this._getFilterCreatedByFunction(filters, f);
+      }
+      changed = arrays.remove(filters, f) || changed;
+    });
+
+    if (!changed) {
       return;
     }
-    this._filters = filters;
+    this._setFilters(filters, applyFilter);
+  }
+
+  setFilters(filters, applyFilter) {
+    filters = arrays.ensure(filters);
+    this._addSyntheticFilters(filters);
+
+    if (this._getFilters().length === filters && !filters.some(filter => !this._hasFilter(this._getFilters(), filter))) {
+      return;
+    }
+
+    this._setFilters(filters, applyFilter);
+  }
+
+  _setFilters(filters, applyFilter) {
+    this.widget.setProperty('filters', filters.map(filter => {
+      if (objects.isFunction(filter)) {
+        return this._createFilterByFunction(filter);
+      }
+      return filter;
+    }));
     if (applyFilter) {
       this.filter();
     }
   }
 
-  getFilters() {
-    return [...this._filters];
+  _addSyntheticFilters(filters) {
+    this._addSyntheticFilter(filters, this._textFilter);
   }
 
-  filterCount() {
-    return this._filters.length;
+  _addSyntheticFilter(filters, syntheticFilter) {
+    if (!syntheticFilter || this._hasFilter(filters, syntheticFilter)) {
+      return;
+    }
+    filters.push(syntheticFilter);
+  }
+
+  _getFilters() {
+    return this.widget.filters;
+  }
+
+  _hasFilter(filters, filter) {
+    if (objects.isFunction(filter)) {
+      return !!this._getFilterCreatedByFunction(filters, filter);
+    }
+    return filters.indexOf(filter) > -1;
+  }
+
+  _getFilterCreatedByFunction(filters, filterFunc) {
+    return arrays.find(filters, filter => filter.createdByFunction && filter.accept === filterFunc);
+  }
+
+  _createFilterByFunction(filterFunc) {
+    return {
+      createdByFunction: true,
+      accept: filterFunc
+    };
   }
 
   filter() {
+    return this._filterElements();
+  }
+
+  _filter() {
     return this.applyFilters(this._getElementsForFiltering(), true);
   }
 
   applyFilters(elements, fullReset) {
-    if (this._filters.length === 0 && !scout.nvl(fullReset, false)) {
+    if (this._getFilters().length === 0 && !scout.nvl(fullReset, false)) {
       return;
     }
     let newlyShown = [];
@@ -280,8 +331,6 @@ export default class FilterSupport extends WidgetSupport {
   }
 
   _elementAcceptedByFilters(element) {
-    return !this._filters.some(filter => {
-      return !filter.accept(element);
-    });
+    return !this._getFilters().some(filter => !filter.accept(element));
   }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 BSI Business Systems Integration AG.
+ * Copyright (c) 2010-2021 BSI Business Systems Integration AG.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -72,7 +72,6 @@ describe('TableFilter', () => {
       expect(filteredRows[0]).toBe(table.rows[1]);
 
       table.removeFilterByKey(filter.column.id);
-      table.filter();
 
       filteredRows = table.filteredRows();
       expect(filteredRows.length).toBe(2);
@@ -84,7 +83,6 @@ describe('TableFilter', () => {
         column0 = table.columns[0];
 
       createAndRegisterColumnFilter(table, column0, ['1_0']);
-      table.filter();
       table.render();
       expect(table.filteredRows().length).toBe(1);
 
@@ -113,7 +111,6 @@ describe('TableFilter', () => {
         column0 = table.columns[0];
 
       createAndRegisterColumnFilter(table, column0, ['1_0']);
-      table.filter();
       expect(table.filteredRows().length).toBe(1);
 
       let rows = helper.createModelRows(2, 1);
@@ -139,7 +136,6 @@ describe('TableFilter', () => {
 
       // expects 1 row to be visible
       createAndRegisterColumnFilter(table, column0, ['1_0']);
-      table.filter();
       table.render();
       expect(table.filteredRows().length).toBe(1);
       expect(table.rows[0].$row).toBeFalsy();
@@ -192,7 +188,6 @@ describe('TableFilter', () => {
 
       // expects 1 row to be visible
       createAndRegisterColumnFilter(table, column0, ['1_0']);
-      table.filter();
       expect(table.filteredRows().length).toBe(1);
 
       let rows = helper.createModelRows(2, 1);
@@ -218,7 +213,6 @@ describe('TableFilter', () => {
 
       // expects 1 row to be visible
       createAndRegisterColumnFilter(table, column0, ['1_0']);
-      table.filter();
       table.render();
       expect(table.filteredRows().length).toBe(1);
 
@@ -251,7 +245,6 @@ describe('TableFilter', () => {
 
       // Filter active
       createAndRegisterColumnFilter(table, column0, ['1_0']);
-      table.filter();
       table.render();
       expect(table._filterCount()).toBe(1);
       expect(table.rows.length).toBe(2);
@@ -285,7 +278,6 @@ describe('TableFilter', () => {
 
       // expects 1 row to be visible
       createAndRegisterColumnFilter(table, column0, ['1_0', '3_0']);
-      table.filter();
       table.render();
 
       expect(table.rows.length).toBe(7);
@@ -310,7 +302,6 @@ describe('TableFilter', () => {
       expect(table.$emptyData).toBe(null);
 
       createAndRegisterColumnFilter(table, column0, ['asdf']);
-      table.filter();
 
       expect(table.rows.length).toBe(7);
       expect(table.filteredRows().length).toBe(0);
@@ -318,7 +309,6 @@ describe('TableFilter', () => {
       expect(table.$emptyData).toBeDefined();
 
       createAndRegisterColumnFilter(table, column0, ['1_0']);
-      table.filter();
       expect(table.$emptyData).toBe(null);
 
       table.resetUserFilter();
@@ -331,7 +321,7 @@ describe('TableFilter', () => {
       let table = helper.createTable(model);
 
       table.render();
-      table.addFilter(helper.createTableTextFilter(table, 'asdf'));
+      table.addFilter(helper.createTableTextFilter(table, 'asdf'), false);
       table.detach();
       table.filter();
       table.attach();
@@ -355,7 +345,6 @@ describe('TableFilter', () => {
       expect(table.selectedRows.length).toBe(2);
 
       createAndRegisterColumnFilter(table, column0, ['1_0']);
-      table.filter();
 
       expect(table.selectedRows.length).toBe(1);
       expect(table.selectedRows[0]).toBe(table.rows[1]);
@@ -374,7 +363,6 @@ describe('TableFilter', () => {
 
       // Add a filter that hides the first row (still no rows selected)
       let filter = createAndRegisterColumnFilter(table, column0, ['1_0']);
-      table.filter();
       expect(table.rows.length).toBe(2);
       expect(table.filteredRows().length).toBe(1);
       expect(table.selectedRows.length).toBe(0);
@@ -387,7 +375,6 @@ describe('TableFilter', () => {
 
       // Remove the filter again (still no selection)
       table.removeFilter(filter);
-      table.filter();
       expect(table.rows.length).toBe(2);
       expect(table.filteredRows().length).toBe(2);
       expect(table.selectedRows.length).toBe(0);
@@ -407,7 +394,6 @@ describe('TableFilter', () => {
         row1 = table.rows[1];
 
       createAndRegisterColumnFilter(table, column0, ['1_0', '2_0']);
-      table.filter();
       table.render();
       table.selectAll();
       expect(table.selectedRows.length).toBe(2);
@@ -515,7 +501,6 @@ describe('TableFilter', () => {
         table.on('filter', listener._onFilter);
 
         createAndRegisterColumnFilter(table, column0, ['1_0']);
-        table.filter();
 
         expect(listener._onFilter).toHaveBeenCalled();
       });
@@ -529,7 +514,6 @@ describe('TableFilter', () => {
         table.on('filter', listener._onFilter);
 
         createAndRegisterColumnFilter(table, column0, ['1_0']);
-        table.filter();
 
         expect(listener._onFilter).toHaveBeenCalled();
       });
@@ -542,7 +526,6 @@ describe('TableFilter', () => {
         table.render();
 
         createAndRegisterColumnFilter(table, column0, ['1_0']);
-        table.filter();
 
         spyOn(listener, '_onFilter');
         table.on('filter', listener._onFilter);
@@ -558,7 +541,6 @@ describe('TableFilter', () => {
           row1 = table.rows[1];
 
         createAndRegisterColumnFilter(table, column0, ['1_0']);
-        table.filter();
         table.render();
 
         spyOn(listener, '_onFilter');
@@ -579,7 +561,6 @@ describe('TableFilter', () => {
           column0 = table.columns[0];
 
         createAndRegisterColumnFilter(table, column0, ['1_0']);
-        table.filter();
         table.render();
         expect(table.filteredRows().length).toBe(1);
 
@@ -608,7 +589,6 @@ describe('TableFilter', () => {
           row1 = table.rows[1];
 
         createAndRegisterColumnFilter(table, column0, ['1_0']);
-        table.filter();
         table.render();
         expect(table.filteredRows().length).toBe(1);
 
@@ -627,7 +607,6 @@ describe('TableFilter', () => {
           column0 = table.columns[0];
 
         createAndRegisterColumnFilter(table, column0, ['1_0']);
-        table.filter();
         table.render();
         expect(table.filteredRows().length).toBe(1);
 
@@ -647,7 +626,6 @@ describe('TableFilter', () => {
           row1 = table.rows[1];
 
         createAndRegisterColumnFilter(table, column0, ['1_0']);
-        table.filter();
         table.render();
 
         spyOn(listener, '_onFilter');
@@ -673,7 +651,6 @@ describe('TableFilter', () => {
         table.render();
 
         createAndRegisterColumnFilter(table, column0, ['1_0']);
-        table.filter();
 
         expect(table.rows[0].filterAccepted).toBe(false);
         expect(table.rows[1].filterAccepted).toBe(true);

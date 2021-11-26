@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2018 BSI Business Systems Integration AG.
+ * Copyright (c) 2010-2021 BSI Business Systems Integration AG.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -15,6 +15,7 @@ import {
   Device,
   DoubleClickSupport,
   dragAndDrop,
+  FilterSupport,
   graphics,
   HtmlComponent,
   KeyStrokeContext,
@@ -59,7 +60,6 @@ export default class Tree extends Widget {
     this.displayStyle = Tree.DisplayStyle.DEFAULT;
     this.dropType = 0;
     this.dropMaximumSize = dragAndDrop.DEFAULT_DROP_MAXIMUM_SIZE;
-    this.filterEnabled = false;
     this.lazyExpandingEnabled = true;
     this.menus = [];
     this.contextMenu = null;
@@ -80,6 +80,11 @@ export default class Tree extends Widget {
     this.selectedNodes = [];
     this.prevSelectedNode = null; // The previously selected node, relevant for breadcrumb in compact mode
 
+    this.filters = [];
+    this.textFilterEnabled = false;
+    this.filterSupport = this._createFilterSupport();
+    this.filteredElementsDirty = false;
+
     // performance optimization: E.g. rather than iterating over the whole tree when unchecking all nodes,
     // we explicitly keep track of nodes to uncheck (useful e.g. for single-check mode in very large trees).
     this.checkedNodes = [];
@@ -89,7 +94,6 @@ export default class Tree extends Widget {
     this.visibleNodesMap = {};
     this._addWidgetProperties(['menus', 'keyStrokes']);
     this._additionalContainerClasses = ''; // may be used by subclasses to set additional CSS classes
-    this._filters = [];
     this._doubleClickSupport = new DoubleClickSupport();
     this._$animationWrapper = null; // used by _renderExpansion()
     this._$expandAnimationWrappers = [];
@@ -147,10 +151,11 @@ export default class Tree extends Widget {
 
   _init(model) {
     super._init(model);
-    this.addFilter(new LazyNodeFilter(this), true);
+    this.setFilters(this.filters, false);
+    this.addFilter(new LazyNodeFilter(this), false);
     this.breadcrumbFilter = new TreeBreadcrumbFilter(this);
     if (this.displayStyle === Tree.DisplayStyle.BREADCRUMB) {
-      this.addFilter(this.breadcrumbFilter, true, true);
+      this.addFilter(this.breadcrumbFilter, false);
     }
     this.initialTraversing = true;
     this._setCheckable(this.checkable);
@@ -382,6 +387,11 @@ export default class Tree extends Widget {
     this._renderViewport();
   }
 
+  _renderProperties() {
+    super._renderProperties();
+    this._renderTextFilterEnabled();
+  }
+
   _postRender() {
     super._postRender();
     this._renderSelection();
@@ -405,6 +415,7 @@ export default class Tree extends Widget {
     this.$data = null;
     // reset rendered view range because now range is rendered
     this.viewRangeRendered = new Range(0, 0);
+    this.filterSupport.remove();
     super._remove();
   }
 
@@ -1347,11 +1358,10 @@ export default class Tree extends Widget {
           this.expandNode(selectedNode);
         }
       }
-      this.addFilter(this.breadcrumbFilter, true, true);
+      this.addFilter(this.breadcrumbFilter, false);
       this.filterVisibleNodes();
     } else {
-      this.removeFilter(this.breadcrumbFilter, true);
-      this.filter();
+      this.removeFilter(this.breadcrumbFilter);
     }
     this._updateNodePaddingLevel();
   }
@@ -2106,7 +2116,7 @@ export default class Tree extends Widget {
         this.expandNode(this.selectedNodes[0]);
         this.selectedNodes[0].filterDirty = true;
       }
-      this.filter(true);
+      this.filter();
     }
     this.session.onRequestsDone(this._updateMenuBar.bind(this));
   }
@@ -2767,36 +2777,46 @@ export default class Tree extends Widget {
   }
 
   /**
-   * @param filter object with createKey() and accept()
+   * @param filter object with accept()
    */
-  addFilter(filter, doNotFilter, notAnimated) {
-    if (this._filters.indexOf(filter) < 0) {
-      this._filters.push(filter);
-      if (!doNotFilter) {
-        this.filter(notAnimated);
-      }
-      return true;
-    }
-    return false;
+  addFilter(filter, applyFilter = true) {
+    this.filterSupport.addFilter(filter, applyFilter);
   }
 
-  removeFilter(filter, notAnimated) {
-    if (arrays.remove(this._filters, filter)) {
-      this.filter(notAnimated);
-    }
+  removeFilter(filter, applyFilter = true) {
+    this.filterSupport.removeFilter(filter, applyFilter);
   }
 
-  filter(notAnimated) {
-    let useAnimation = Boolean(!notAnimated),
-      newHiddenNodes = [];
+  setFilters(filters, applyFilter = true) {
+    this.filterSupport.setFilters(filters, applyFilter);
+  }
+
+  filter() {
+    this.filterSupport.filter();
+  }
+
+  _filter() {
+    let newHiddenNodes = [],
+      newShownNodes = [];
     // Filter nodes
     this.visitNodes(node => {
       let changed = this._applyFiltersForNode(node);
       if (changed) {
         if (!node.isFilterAccepted()) {
-          arrays.pushAll(newHiddenNodes, this._removeFromFlatList(node, useAnimation));
+          newHiddenNodes.push(node);
         } else {
-          this._addToVisibleFlatList(node, useAnimation);
+          let parents = [];
+          let parent = node.parentNode;
+          while (parent && !parent.isFilterAccepted()) {
+            arrays.insert(parents, parent, 0);
+            parent = parent.parentNode;
+          }
+          parents.forEach(p => {
+            p.setFilterAccepted(true);
+            arrays.remove(newHiddenNodes, p);
+            newShownNodes.push(p);
+          });
+          newShownNodes.push(node);
         }
         this.viewRangeDirty = true;
       } else {
@@ -2808,21 +2828,21 @@ export default class Tree extends Widget {
         // the DOM, even though the filter state hasn't changed. Otherwise we'd have a
         // problem when we insert nodes in this._insertNodeInDOMAtPlace.
         if (!node.attached) {
-          this.showNode(node, useAnimation);
+          this.showNode(node, true);
           if (node.attached) {
             // If sibling nodes are hiding at the same time, the nodes to be shown should be added after these nodes to make the animation look correctly -> move them
             node.$node.insertAfter(node.$node.nextAll('.hiding:last'));
           }
         }
       }
-      if ((node.expanded || node.expandedLazy) && node.isFilterAccepted()) {
+      if (node.expanded || node.expandedLazy) {
         return false;
       }
       // don't process children->optimize performance
       return true;
     });
-
-    this._nodesFiltered(newHiddenNodes);
+    newShownNodes.forEach(node => this._addToVisibleFlatList(node, true));
+    this._nodesFiltered(newHiddenNodes.flatMap(node => this._removeFromFlatList(node, true)));
   }
 
   /**
@@ -2851,30 +2871,11 @@ export default class Tree extends Widget {
     this.deselectNodes(hiddenNodes);
   }
 
-  _nodeAcceptedByFilters(node) {
-    for (let i = 0; i < this._filters.length; i++) {
-      let filter = this._filters[i];
-      if (!filter.accept(node)) {
-        return false;
-      }
-    }
-    return true;
-  }
-
   /**
    * @returns {Boolean} true if node state has changed, false if not
    */
   _applyFiltersForNode(node) {
-    let changed = node.filterDirty;
-    if (this._nodeAcceptedByFilters(node)) {
-      if (!node.filterAccepted) {
-        node.filterAccepted = true;
-        changed = true;
-      }
-    } else if (node.filterAccepted) {
-      node.filterAccepted = false;
-      changed = true;
-    }
+    let changed = this.filterSupport.applyFiltersForElement(node) || node.filterDirty;
     if (changed) {
       node.filterDirty = false;
       node.childNodes.forEach(childNode => {
@@ -2883,6 +2884,33 @@ export default class Tree extends Widget {
       return true;
     }
     return false;
+  }
+
+  /**
+   * @returns {FilterSupport}
+   */
+  _createFilterSupport() {
+    return new FilterSupport({
+      widget: this,
+      $container: () => this.$container,
+      filterElements: this._filter.bind(this),
+      getElementText: node => node.text
+    });
+  }
+
+  setTextFilterEnabled(textFilterEnabled) {
+    this.setProperty('textFilterEnabled', textFilterEnabled);
+  }
+
+  isTextFilterFieldVisible() {
+    return this.textFilterEnabled;
+  }
+
+  _renderTextFilterEnabled() {
+    if (!this.filterSupport) {
+      return;
+    }
+    this.filterSupport.renderFilterField();
   }
 
   /**

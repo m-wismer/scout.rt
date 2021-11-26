@@ -1137,8 +1137,6 @@ export default class ChartTableControl extends TableControl {
     } else {
       this.table.removeFilterByKey(ChartTableUserFilter.TYPE);
     }
-
-    this.table.filter();
   }
 
   _axisContentForColumn(column) {

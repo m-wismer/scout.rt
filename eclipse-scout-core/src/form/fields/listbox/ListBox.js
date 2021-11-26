@@ -19,8 +19,6 @@ export default class ListBox extends LookupBox {
     this.lookupStatus = null;
     this.clearable = ValueField.Clearable.NEVER;
 
-    this.textFilterEnabled = true;
-
     this._addWidgetProperties(['table', 'filterBox']);
   }
 
@@ -28,7 +26,6 @@ export default class ListBox extends LookupBox {
     super._init(model);
     this.table.on('rowsChecked', this._onTableRowsChecked.bind(this));
     this.table.setScrollTop(this.scrollTop);
-    this.table.setTextFilterEnabled(this.textFilterEnabled);
   }
 
   _initStructure(value) {
@@ -51,12 +48,8 @@ export default class ListBox extends LookupBox {
     this.addField(this.table.$container);
   }
 
-  setTextFilterEnabled(textFilterEnabled) {
-    this.setProperty('textFilterEnabled', textFilterEnabled);
-  }
-
   _setTextFilterEnabled(textFilterEnabled) {
-    this._setProperty('textFilterEnabled', textFilterEnabled);
+    super._setTextFilterEnabled(textFilterEnabled);
     this.table.setTextFilterEnabled(textFilterEnabled);
   }
 
@@ -204,6 +197,7 @@ export default class ListBox extends LookupBox {
       checkableStyle: Table.CheckableStyle.CHECKBOX_TABLE_ROW,
       headerVisible: false,
       footerVisible: false,
+      textFilterEnabled: this.textFilterEnabled,
       columns: [{
         objectType: 'Column'
       }]

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2018 BSI Business Systems Integration AG.
+ * Copyright (c) 2010-2021 BSI Business Systems Integration AG.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -50,6 +50,11 @@ export default class TreeBox extends LookupBox {
   _renderStructure($fieldContainer) {
     this.tree.render(this.$fieldContainer);
     this.addField(this.tree.$container);
+  }
+
+  _setTextFilterEnabled(textFilterEnabled) {
+    super._setTextFilterEnabled(textFilterEnabled);
+    this.tree.setTextFilterEnabled(textFilterEnabled);
   }
 
   _onTreeNodesChecked(event) {
@@ -206,7 +211,8 @@ export default class TreeBox extends LookupBox {
   _createDefaultTreeBoxTree() {
     return scout.create('Tree', {
       parent: this,
-      checkable: true
+      checkable: true,
+      textFilterEnabled: this.textFilterEnabled
     });
   }
 
