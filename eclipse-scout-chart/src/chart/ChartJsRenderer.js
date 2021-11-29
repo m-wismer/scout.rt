@@ -816,15 +816,15 @@ export default class ChartJsRenderer extends AbstractChartRenderer {
       yAxisLabel = yAxisLabel ? strings.encode(yAxisLabel) : '&nbsp;' + ChartJsRenderer.ARROW_UP_DOWN + '&nbsp;';
       let xTickLabel = xAxis.ticks.callback(dataset.data[tooltipItem.dataIndex].x);
       if (xTickLabel) {
-        title.push(this._createTooltipAttribute(xAxisLabel, strings.encode(xTickLabel)));
+        title.push(this._createTooltipAttribute(xAxisLabel, strings.encode(xTickLabel), true));
       }
       let yTickLabel = yAxis.ticks.callback(dataset.data[tooltipItem.dataIndex].y);
       if (yTickLabel) {
-        title.push(this._createTooltipAttribute(yAxisLabel, strings.encode(yTickLabel)));
+        title.push(this._createTooltipAttribute(yAxisLabel, strings.encode(yTickLabel), true));
       }
     } else {
       let label = chart.data.labels[tooltipItem.dataIndex];
-      title.push(this._createTooltipAttribute(config.options.reformatLabels ? this._formatLabel(label) : label));
+      title.push(this._createTooltipAttribute(config.options.reformatLabels ? this._formatLabel(label) : label, '', true));
     }
     return title;
   }
@@ -874,8 +874,9 @@ export default class ChartJsRenderer extends AbstractChartRenderer {
     };
   }
 
-  _createTooltipAttribute(label, value, color) {
-    return '<div class="attribute">' +
+  _createTooltipAttribute(label, value, isTitle, color) {
+    let cssClass = isTitle ? 'attribute title' : 'attribute';
+    return '<div class="' + cssClass + '">' +
       (color ? '<div class="color" style="background-color:' + color + '"></div>' : '') +
       (label ? '<label>' + label + '</label>' : '') +
       (value ? '<div class="value">' + value + '</div>' : '') +
@@ -915,7 +916,8 @@ export default class ChartJsRenderer extends AbstractChartRenderer {
       this._tooltip = null;
     }
 
-    let tooltipCallbacks = (tooltip.options || {}).callbacks || {},
+    let tooltipOptions = tooltip.options || {},
+      tooltipCallbacks = tooltipOptions.callbacks || {},
       tooltipTitle = tooltipCallbacks.title,
       tooltipLabel = tooltipCallbacks.label,
       tooltipLabelValue = tooltipCallbacks.labelValue,
@@ -940,7 +942,7 @@ export default class ChartJsRenderer extends AbstractChartRenderer {
         labelColor = tooltipColor(tooltipItem);
         labelColor = objects.isPlainObject(labelColor) ? (labelColor.backgroundColor || '') : '';
       }
-      tooltipText += this._createTooltipAttribute(label, labelValue, labelColor);
+      tooltipText += this._createTooltipAttribute(label, labelValue, false, labelColor);
     });
 
     let positionAndOffset = this._computeTooltipPositionAndOffset(tooltipItems[0]),
@@ -956,7 +958,7 @@ export default class ChartJsRenderer extends AbstractChartRenderer {
       $anchor: this.$canvas,
       text: tooltipText,
       htmlEnabled: true,
-      cssClass: 'chart-tooltip',
+      cssClass: strings.join(' ', 'chart-tooltip', tooltipOptions.cssClass),
       tooltipPosition: positionAndOffset.tooltipPosition,
       tooltipDirection: positionAndOffset.tooltipDirection,
       origin: origin
