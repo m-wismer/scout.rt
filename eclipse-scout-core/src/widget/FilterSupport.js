@@ -193,7 +193,8 @@ export default class FilterSupport extends WidgetSupport {
 
   addFilter(filter, applyFilter) {
     let filtersToAdd = arrays.ensure(filter);
-    let filters = this._getFilters().slice();
+    let filters = this._getFilters().slice(),
+      oldFilters = filters.slice();
     filtersToAdd.forEach(f => {
       if (this._hasFilter(filters, f)) {
         return;
@@ -204,11 +205,17 @@ export default class FilterSupport extends WidgetSupport {
       return;
     }
     this._setFilters(filters, applyFilter);
+
+    let newFilters = this._getFilters().slice();
+    arrays.removeAll(newFilters, oldFilters);
+
+    return newFilters;
   }
 
   removeFilter(filter, applyFilter) {
     let filtersToRemove = arrays.ensure(filter);
-    let filters = this._getFilters().slice();
+    let filters = this._getFilters().slice(),
+      oldFilters = filters.slice();
 
     let changed = false;
     filtersToRemove.forEach(f => {
@@ -222,6 +229,11 @@ export default class FilterSupport extends WidgetSupport {
       return;
     }
     this._setFilters(filters, applyFilter);
+
+    let newFilters = this._getFilters().slice();
+    arrays.removeAll(oldFilters, newFilters);
+
+    return oldFilters;
   }
 
   setFilters(filters, applyFilter) {

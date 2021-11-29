@@ -30,7 +30,6 @@ export default class TableTileGridMediator extends Widget {
     this.tiles = [];
     this.tileMappings = []; // used only in scout classic
     this.tilesMap = {}; // tiles by rowId
-    this.tileFilterMap = {};
     this.groups = {};
     this.groupForTileMap = {}; // groupId by tile
     this.tableState = {}; // always stores the last table state before tileMode activation
@@ -324,9 +323,10 @@ export default class TableTileGridMediator extends Widget {
 
     if (hasHierarchy) {
       // add the hierarchyFilter since the tileMode doesn't support hierarchy
-      this.table.addFilter(scout.create('TileTableHierarchyFilter', {
+      this._tableHierarchyFilter = scout.create('TileTableHierarchyFilter', {
         table: this.table
-      }));
+      });
+      this.table.addFilter(this._tableHierarchyFilter);
     }
 
     // doesn't depend upon any tile data, therefore execute on activation
@@ -353,7 +353,10 @@ export default class TableTileGridMediator extends Widget {
       this.table.loadingSupport.options$Container = this.tableState.loadingSupportContainer;
     }
 
-    this.table.removeFilter(scout.create('TileTableHierarchyFilter'));
+    if (this._tableHierarchyFilter) {
+      this.table.removeFilter(this._tableHierarchyFilter);
+      this._tableHierarchyFilter = null;
+    }
 
     this._syncScrollTopFromTileGridToTable();
 
@@ -529,7 +532,7 @@ export default class TableTileGridMediator extends Widget {
       return;
     }
 
-    this.tileAccordion.removeTileFilter(this.tileFilterMap[event.filter.createKey()]);
+    this.tileAccordion.removeTileFilter(event.filter.tileFilter);
     this.tileAccordion.filterTiles();
   }
 
@@ -544,11 +547,10 @@ export default class TableTileGridMediator extends Widget {
         return false;
       }
     };
-    let key = tableFilter.createKey();
-    if (this.tileFilterMap[key]) {
-      this.tileAccordion.removeTileFilter(this.tileFilterMap[key]);
+    if (tableFilter.tileFilter) {
+      this.tileAccordion.removeTileFilter(tableFilter.tileFilter);
     }
-    this.tileFilterMap[key] = tileFilter;
+    tableFilter.tileFilter = tileFilter;
     this.tileAccordion.addTileFilter(tileFilter);
   }
 

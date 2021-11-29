@@ -3787,7 +3787,7 @@ export default class Table extends Widget {
   }
 
   /**
-   * @param filter object with createKey() and accept()
+   * @param filter object with accept()
    */
   addFilter(filter, applyFilter = true) {
     this._updateFilterKey(filter);
@@ -3796,11 +3796,12 @@ export default class Table extends Widget {
       this.filterSupport.removeFilter(previousFilter);
     }
 
-    this.filterSupport.addFilter(filter, applyFilter);
-
-    this.trigger('filterAdded', {
-      filter: filter
-    });
+    let added = this.filterSupport.addFilter(filter, applyFilter);
+    if (added && added.length) {
+      this.trigger('filterAdded', {
+        filter: added[0]
+      });
+    }
   }
 
   removeFilter(filter, applyFilter = true) {
@@ -3810,10 +3811,12 @@ export default class Table extends Widget {
       return;
     }
 
-    this.filterSupport.removeFilter(filter, applyFilter);
-    this.trigger('filterRemoved', {
-      filter: filter
-    });
+    let removed = this.filterSupport.removeFilter(filter, applyFilter);
+    if (removed && removed.length) {
+      this.trigger('filterRemoved', {
+        filter: removed[0]
+      });
+    }
   }
 
   removeFilterByKey(key, applyFilter = true) {
@@ -3821,10 +3824,12 @@ export default class Table extends Widget {
     if (!filter) {
       return;
     }
-    this.filterSupport.removeFilter(filter, applyFilter);
-    this.trigger('filterRemoved', {
-      filter: filter
-    });
+    let removed = this.filterSupport.removeFilter(filter, applyFilter);
+    if (removed && removed.length) {
+      this.trigger('filterRemoved', {
+        filter: removed[0]
+      });
+    }
   }
 
   getFilter(key) {
