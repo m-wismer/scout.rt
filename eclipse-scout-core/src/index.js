@@ -587,6 +587,7 @@ export {default as BeanTile} from './tile/BeanTile';
 export {default as BeanTileAdapter} from './tile/BeanTileAdapter';
 export {default as TileAccordion} from './tile/accordion/TileAccordion';
 export {default as TileAccordionAdapter} from './tile/accordion/TileAccordionAdapter';
+export {default as TileAccordionLayout} from './tile/accordion/TileAccordionLayout';
 export {default as TileAccordionSelectionHandler} from './tile/accordion/TileAccordionSelectionHandler';
 export {default as TileGridSelectKeyStroke} from './tile/keystrokes/TileGridSelectKeyStroke';
 export {default as TileGridSelectAllKeyStroke} from './tile/keystrokes/TileGridSelectAllKeyStroke';

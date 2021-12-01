@@ -48,7 +48,8 @@ export default class FilterSupport extends WidgetSupport {
     this._filterField = null;
 
     this._filterFieldDisplayTextChangedHandler = this._onFilterFieldDisplayTextChanged.bind(this);
-    this._blurHandler = this._onBlur.bind(this);
+    this._focusInHandler = this._onFocusIn.bind(this);
+    this._focusOutHandler = this._onFocusOut.bind(this);
 
     this._focusFilterFieldKeyStroke = null;
     this._cancelFilterFieldKeyStroke = null;
@@ -117,14 +118,15 @@ export default class FilterSupport extends WidgetSupport {
     this.addFilter(this._textFilter);
 
     this._filterField.on('propertyChange:displayText', this._filterFieldDisplayTextChangedHandler);
-    this._filterField.$field.on('blur', this._blurHandler);
-    this.$container.on('blur', this._blurHandler);
+    this._filterField.$field.on('focusin', this._focusInHandler);
+    this._filterField.$field.on('focusout', this._focusOutHandler);
+    this.widget.$container.on('focusin', this._focusInHandler);
+    this.widget.$container.on('focusout', this._focusOutHandler);
 
     this.widget.$container.data('filter-field', this._filterField.$field);
     this._focusFilterFieldKeyStroke = new FocusFilterFieldKeyStroke(this.widget);
     this.widget.keyStrokeContext.registerKeyStroke(this._focusFilterFieldKeyStroke);
 
-    // TODO fsh maybe move to own class
     this._cancelFilterFieldKeyStroke = new KeyStroke();
     this._cancelFilterFieldKeyStroke.field = this._filterField;
     this._cancelFilterFieldKeyStroke.which = [keys.ESC];
@@ -145,17 +147,31 @@ export default class FilterSupport extends WidgetSupport {
   }
 
   _onFilterFieldDisplayTextChanged(event) {
-    this._filterField.$container.toggleClass('empty', !event.newValue);
+    if (this._filterField && this._filterField.rendered) {
+      this._filterField.$container.toggleClass('empty', !event.newValue);
+    }
     if (!this._updateTextFilterText(this._textFilter, event.newValue)) {
       return;
     }
     this.filter();
   }
 
-  _onBlur(event) {
-    if (!this.$container.isOrHas(event.relatedTarget)) {
+  _onFocusIn(event) {
+    this._updateFocusInsideWidget(event.target);
+  }
+
+  _onFocusOut(event) {
+    if (!this._updateFocusInsideWidget(event.relatedTarget)) {
       this._resetFilterField();
     }
+  }
+
+  _updateFocusInsideWidget(target) {
+    let focusInsideWidget = this.widget.$container.isOrHas(target);
+    if (this._filterField && this._filterField.rendered) {
+      this._filterField.$container.toggleClass('focus-inside-widget', focusInsideWidget);
+    }
+    return focusInsideWidget;
   }
 
   _exitFilterField() {
@@ -168,11 +184,19 @@ export default class FilterSupport extends WidgetSupport {
   }
 
   _resetFilterField() {
-    this._filterField.setValue(null);
+    if (this._filterField) {
+      this._filterField.setValue(null);
+    }
   }
 
   _removeFilterField() {
     if (this._filterField) {
+      this.widget.$container.off('focusin', this._focusInHandler);
+      this.widget.$container.off('focusout', this._focusOutHandler);
+
+      this.widget.keyStrokeContext.unregisterKeyStroke(this._focusFilterFieldKeyStroke);
+      this._focusFilterFieldKeyStroke = null;
+
       this._resetFilterField();
       this._filterField.remove();
       this._filterField = null;
@@ -180,10 +204,6 @@ export default class FilterSupport extends WidgetSupport {
       this.removeFilter(this._textFilter);
       this._textFilter = null;
 
-      this.$container.off('blur', this._blurHandler);
-
-      this.widget.keyStrokeContext.unregisterKeyStroke(this._focusFilterFieldKeyStroke);
-      this._focusFilterFieldKeyStroke = null;
     }
   }
 

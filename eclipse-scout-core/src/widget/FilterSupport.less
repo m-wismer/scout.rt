@@ -17,6 +17,7 @@
 @filter-field-bottom: 6px;
 @filter-field-right: 14px;
 
+// TODO fsh change default=focused and not-focused to default=not-focused and focused
 .filter-field.string-field {
   position: absolute;
   bottom: @filter-field-bottom;
@@ -42,7 +43,7 @@
   box-shadow @filter-field-transition-duration ease-in-out,
   opacity @filter-field-transition-duration ease-in-out;
 
-  :not(:hover):not(:focus) > &:not(.focused) {
+  :not(:hover) > &:not(.focused):not(.focus-inside-widget) {
     opacity: 0;
   }
 
@@ -61,7 +62,7 @@
     transition: bottom @filter-field-transition-duration ease-in-out,
     right @filter-field-transition-duration ease-in-out,
     opacity @filter-field-transition-duration ease-in-out;
-    font-size: @font-size-icon;
+    font-size: @font-size-plus;
     color: @label-color;
     border-radius: @border-radius;
   }
@@ -137,5 +138,36 @@
 
   &.disabled {
     .hidden();
+  }
+}
+
+.filter-field-container {
+  position: sticky;
+  top: 100%;
+  left: 100%;
+  width: 0;
+  height: 0;
+  overflow: visible;
+  z-index: 1;
+
+  --filter-field-max-width: @filter-field-width;
+
+  &:not(:hover) > .filter-field.string-field:not(.focused):not(.focus-inside-widget) {
+    opacity: 1;
+  }
+
+  & > .filter-field.string-field {
+    bottom: 0;
+    right: 0;
+    max-width: var(--filter-field-max-width);
+
+    :not(:hover) > &:not(.focused):not(.focus-inside-widget) {
+      opacity: 0;
+    }
+
+    &:not(.focused).empty {
+      bottom: ((@logical-grid-row-height - @filter-field-icon-size) / 2);
+      right: @text-field-icon-margin-x + 1px;
+    }
   }
 }

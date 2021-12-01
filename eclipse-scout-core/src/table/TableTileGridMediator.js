@@ -524,7 +524,6 @@ export default class TableTileGridMediator extends Widget {
       return;
     }
     this._addFilter(event.filter);
-    this.tileAccordion.filterTiles();
   }
 
   _onTableFilterRemoved(event) {
@@ -532,8 +531,7 @@ export default class TableTileGridMediator extends Widget {
       return;
     }
 
-    this.tileAccordion.removeTileFilter(event.filter.tileFilter);
-    this.tileAccordion.filterTiles();
+    this.tileAccordion.removeFilter(event.filter.tileFilter);
   }
 
   _addFilter(tableFilter) {
@@ -548,17 +546,17 @@ export default class TableTileGridMediator extends Widget {
       }
     };
     if (tableFilter.tileFilter) {
-      this.tileAccordion.removeTileFilter(tableFilter.tileFilter);
+      this.tileAccordion.removeFilter(tableFilter.tileFilter, false);
     }
     tableFilter.tileFilter = tileFilter;
-    this.tileAccordion.addTileFilter(tileFilter);
+    this.tileAccordion.addFilter(tileFilter);
   }
 
   _onTableFilter(event) {
     if (!this.table.tileMode) {
       return;
     }
-    this.tileAccordion.filterTiles();
+    this.tileAccordion.filter();
   }
 
   _syncSelectionFromTableToTile() {
@@ -628,9 +626,8 @@ export default class TableTileGridMediator extends Widget {
 
   _syncFiltersFromTableToTile() {
     if (this.tileAccordion) {
-      this.tileAccordion.setTileFilters([]);
+      this.tileAccordion.setFilters([]);
       this.table.filters.forEach(tableFilter => this._addFilter(tableFilter));
-      this.tileAccordion.filterTiles();
     }
   }
 
