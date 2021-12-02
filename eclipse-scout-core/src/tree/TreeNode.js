@@ -147,7 +147,7 @@ export default class TreeNode {
 
   isFilterAccepted(forceFilter) {
     if (this.filterDirty || forceFilter) {
-      this.getTree()._applyFiltersForNode(this);
+      this.getTree().applyFiltersForNode(this);
     }
     return this.filterAccepted;
   }

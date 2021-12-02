@@ -277,7 +277,7 @@ export default class Tree extends Widget {
           node.expanded = true;
           // if parent was filtered before, try refilter after adding to selection path.
           if (p.level === 0) {
-            this._applyFiltersForNode(p);
+            this.applyFiltersForNode(p);
 
             // add visible nodes to visible nodes array when they are initialized
             this._addToVisibleFlatList(p, false);
@@ -292,7 +292,7 @@ export default class Tree extends Widget {
       this._inSelectionPathList[node.id] = true;
     }
 
-    this._applyFiltersForNode(node);
+    this.applyFiltersForNode(node);
 
     // add visible nodes to visible nodes array when they are initialized
     this._addToVisibleFlatList(node, false);
@@ -2318,14 +2318,7 @@ export default class Tree extends Widget {
       }
 
       if (propertiesChanged) {
-        if (this._applyFiltersForNode(oldNode)) {
-          if (!oldNode.isFilterAccepted()) {
-            this._nodesFiltered([oldNode]);
-            this._removeFromFlatList(oldNode, false);
-          } else {
-            this._addToVisibleFlatList(oldNode, false);
-          }
-        }
+        this.applyFiltersForNode(oldNode);
         this._updateItemPath(false, oldNode.parentNode);
         if (this.rendered) {
           oldNode._decorate();
@@ -2800,41 +2793,10 @@ export default class Tree extends Widget {
       newShownNodes = [];
     // Filter nodes
     this.visitNodes(node => {
-      let changed = this._applyFiltersForNode(node);
-      if (changed) {
-        if (!node.isFilterAccepted()) {
-          newHiddenNodes.push(node);
-        } else {
-          let parents = [];
-          let parent = node.parentNode;
-          while (parent && !parent.isFilterAccepted()) {
-            arrays.insert(parents, parent, 0);
-            parent = parent.parentNode;
-          }
-          parents.forEach(p => {
-            p.setFilterAccepted(true);
-            arrays.remove(newHiddenNodes, p);
-            newShownNodes.push(p);
-          });
-          newShownNodes.push(node);
-        }
-        this.viewRangeDirty = true;
-      } else {
-        // this else branch is required when the filter-state of a node has not changed
-        // for instance Node "Telefon mit Sabrina" is visible for filter "tel" and also
-        // for filter "abr". However, it is possible that the node is _not_ attached, when
-        // we switch from one filter to another, because the node was not in the view-range
-        // with the previous filter. That's why we must make sure, the node is attached to
-        // the DOM, even though the filter state hasn't changed. Otherwise we'd have a
-        // problem when we insert nodes in this._insertNodeInDOMAtPlace.
-        if (!node.attached) {
-          this.showNode(node, true);
-          if (node.attached) {
-            // If sibling nodes are hiding at the same time, the nodes to be shown should be added after these nodes to make the animation look correctly -> move them
-            node.$node.insertAfter(node.$node.nextAll('.hiding:last'));
-          }
-        }
-      }
+      let result = this.applyFiltersForNode(node, false);
+      arrays.removeAll(newHiddenNodes, result.newShownNodes);
+      arrays.pushAll(newHiddenNodes, result.newHiddenNodes);
+      arrays.pushAll(newShownNodes, result.newShownNodes);
       if (node.expanded || node.expandedLazy) {
         return false;
       }
@@ -2853,8 +2815,8 @@ export default class Tree extends Widget {
     let newHiddenNodes = [];
     for (let i = 0; i < this.visibleNodesFlat.length; i++) {
       let node = this.visibleNodesFlat[i];
-      let changed = this._applyFiltersForNode(node);
-      if (changed) {
+      let result = this.applyFiltersForNode(node, false);
+      if (result.newHiddenNodes.length) {
         if (!node.isFilterAccepted()) {
           i--;
           arrays.pushAll(newHiddenNodes, this._removeFromFlatList(node, animated));
@@ -2869,6 +2831,59 @@ export default class Tree extends Widget {
   _nodesFiltered(hiddenNodes) {
     // non visible nodes must be deselected
     this.deselectNodes(hiddenNodes);
+  }
+
+  applyFiltersForNode(node, applyNewHiddenShownNodes = true) {
+    let newHiddenNodes = [],
+      newShownNodes = [];
+    node.filterDirty = true;
+    let changed = this._applyFiltersForNode(node);
+    if (changed) {
+      if (!node.isFilterAccepted()) {
+        newHiddenNodes.push(node);
+      } else {
+        let parents = [];
+        let parent = node.parentNode;
+        while (parent && !parent.isFilterAccepted()) {
+          arrays.insert(parents, parent, 0);
+          parent = parent.parentNode;
+        }
+        parents.forEach(p => {
+          p.setFilterAccepted(true);
+          arrays.remove(newHiddenNodes, p);
+          newShownNodes.push(p);
+        });
+        newShownNodes.push(node);
+      }
+      if (this.rendered) {
+        this.viewRangeDirty = true;
+      }
+    } else {
+      // this else branch is required when the filter-state of a node has not changed
+      // for instance Node "Telefon mit Sabrina" is visible for filter "tel" and also
+      // for filter "abr". However, it is possible that the node is _not_ attached, when
+      // we switch from one filter to another, because the node was not in the view-range
+      // with the previous filter. That's why we must make sure, the node is attached to
+      // the DOM, even though the filter state hasn't changed. Otherwise we'd have a
+      // problem when we insert nodes in this._insertNodeInDOMAtPlace.
+      if (!node.attached) {
+        this.showNode(node, true);
+        if (node.attached) {
+          // If sibling nodes are hiding at the same time, the nodes to be shown should be added after these nodes to make the animation look correctly -> move them
+          node.$node.insertAfter(node.$node.nextAll('.hiding:last'));
+        }
+      }
+    }
+
+    if (applyNewHiddenShownNodes) {
+      newShownNodes.forEach(node => this._addToVisibleFlatList(node, true));
+      this._nodesFiltered(newHiddenNodes.flatMap(node => this._removeFromFlatList(node, true)));
+    }
+
+    return {
+      newHiddenNodes: newHiddenNodes,
+      newShownNodes: newShownNodes
+    };
   }
 
   /**
@@ -3197,13 +3212,7 @@ export default class Tree extends Widget {
   }
 
   changeNode(node) {
-    if (this._applyFiltersForNode(node)) {
-      if (node.isFilterAccepted()) {
-        this._addToVisibleFlatList(node, false);
-      } else {
-        this._removeFromFlatList(node, false);
-      }
-    }
+    this.applyFiltersForNode(node);
     if (this.rendered) {
       node._decorate();
     }

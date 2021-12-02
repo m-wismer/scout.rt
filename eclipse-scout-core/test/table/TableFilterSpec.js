@@ -445,7 +445,6 @@ describe('TableFilter', () => {
         createKey: () => 1,
         accept: row => row.$row.text() % 2 === 0
       });
-      table.filter();
 
       // after filtering
       $rows = table.$rows();

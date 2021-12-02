@@ -2246,12 +2246,32 @@ describe('Tree', () => {
         });
       });
 
-      it('filter node -> filtered node and children has to be removed from visible', () => {
+      it('filter node -> filtered node is visible due to not filtered children', () => {
         let filterNode = tree.nodes[0];
         let filter = {
           accept: node => node !== filterNode
         };
         tree.addFilter(filter);
+
+        tree.nodes.forEach(node => {
+          if (node === filterNode) {
+            expect(tree.visibleNodesFlat.indexOf(node) > -1).toBeTruthy();
+            expect(tree.visibleNodesMap[node.id]).toBeTruthy();
+            Tree.visitNodes(childNode => {
+              expect(tree.visibleNodesFlat.indexOf(childNode) > -1).toBeTruthy();
+              expect(tree.visibleNodesMap[childNode.id]).toBeTruthy();
+            }, node.childNodes);
+          } else {
+            expect(tree.visibleNodesFlat.indexOf(node) > -1).toBeTruthy();
+            expect(tree.visibleNodesMap[node.id]).toBeTruthy();
+            Tree.visitNodes(childNode => {
+              expect(tree.visibleNodesFlat.indexOf(childNode) > -1).toBeTruthy();
+              expect(tree.visibleNodesMap[childNode.id]).toBeTruthy();
+            }, node.childNodes);
+          }
+        });
+
+        tree.collapseNode(filterNode);
 
         tree.nodes.forEach(node => {
           if (node === filterNode) {
@@ -2339,7 +2359,7 @@ describe('Tree', () => {
         let newNode0Child3 = helper.createModelNode('0_3', 'newNode0Child3', 3);
         newNode0Child3.expanded = true;
         let filter = {
-          accept: node => tree.nodes[0].id !== node.id
+          accept: node => !(strings.startsWith(node.id, '0') && !strings.endsWith(node.id, '3'))
         };
         tree.addFilter(filter);
 
@@ -2363,11 +2383,16 @@ describe('Tree', () => {
         tree.insertNodes([newNode0Child3], tree.nodes[0]);
         tree.nodes.forEach(node => {
           if (node === tree.nodes[0]) {
-            expect(tree.visibleNodesFlat.indexOf(node) > -1).toBeFalsy();
-            expect(tree.visibleNodesMap[node.id]).toBeFalsy();
+            expect(tree.visibleNodesFlat.indexOf(node) > -1).toBeTruthy();
+            expect(tree.visibleNodesMap[node.id]).toBeTruthy();
             Tree.visitNodes(childNode => {
-              expect(tree.visibleNodesFlat.indexOf(childNode) > -1).toBeFalsy();
-              expect(tree.visibleNodesMap[childNode.id]).toBeFalsy();
+              if (childNode.id === '0_3') {
+                expect(tree.visibleNodesFlat.indexOf(childNode) > -1).toBeTruthy();
+                expect(tree.visibleNodesMap[childNode.id]).toBeTruthy();
+              } else {
+                expect(tree.visibleNodesFlat.indexOf(childNode) > -1).toBeFalsy();
+                expect(tree.visibleNodesMap[childNode.id]).toBeFalsy();
+              }
             }, node.childNodes);
           } else {
             expect(tree.visibleNodesFlat.indexOf(node) > -1).toBeTruthy();

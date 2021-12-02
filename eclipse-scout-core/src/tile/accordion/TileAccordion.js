@@ -8,7 +8,7 @@
  * Contributors:
  *     BSI Business Systems Integration AG - initial API and implementation
  */
-import {Accordion, arrays, EventDelegator, FilterSupport, Group, KeyStrokeContext, objects, scout, TileAccordionLayout, TileAccordionSelectionHandler} from '../../index';
+import {Accordion, arrays, EventDelegator, FilterSupport, Group, KeyStrokeContext, objects, RemoteTileFilter, scout, TileAccordionLayout, TileAccordionSelectionHandler} from '../../index';
 
 export default class TileAccordion extends Accordion {
   constructor() {
@@ -326,9 +326,11 @@ export default class TileAccordion extends Accordion {
   }
 
   _setFilters(filters) {
-    filters = arrays.ensure(filters);
+    filters = arrays.ensure(filters).filter(filter => !(filter instanceof RemoteTileFilter));
     this.groups.forEach(group => {
-      group.body.setFilters(filters);
+      let groupFilters = group.body.filters.filter(filter => filter instanceof RemoteTileFilter);
+      groupFilters.push(...filters);
+      group.body.setFilters(groupFilters);
     });
     this._setProperty('filters', filters.slice());
   }

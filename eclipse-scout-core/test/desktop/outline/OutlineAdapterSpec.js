@@ -24,6 +24,12 @@ describe('OutlineAdapter', () => {
     });
     helper = new OutlineSpecHelper(session);
     tableHelper = new TableSpecHelper(session);
+    $.fx.off = true;
+  });
+
+  afterEach(() => {
+    session = null;
+    $.fx.off = false;
   });
 
   function createOutlineWithDetailTable() {
